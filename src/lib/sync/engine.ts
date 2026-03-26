@@ -127,3 +127,38 @@ export async function syncAll() {
 export async function getPendingSyncCount(): Promise<number> {
   return db.syncQueue.count();
 }
+
+// Force-push ALL local patients to Supabase (one-time bulk upload)
+export async function forcePushAll(): Promise<{ pushed: number; errors: number }> {
+  const supabase = createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) return { pushed: 0, errors: 0 };
+
+  const patients = await db.patients.filter((p) => !p.deletedAt).toArray();
+  let pushed = 0;
+  let errors = 0;
+
+  for (const patient of patients) {
+    const { error } = await supabase.from("patients").upsert(
+      {
+        ...patient.data,
+        local_id: patient.localId,
+        created_by: userData.user.id,
+        updated_at: patient.updatedAt,
+        record_status: patient.status,
+      },
+      { onConflict: "local_id" }
+    );
+
+    if (error) {
+      console.error("Force push error:", patient.localId, error);
+      errors++;
+    } else {
+      await db.patients.update(patient.localId, { syncStatus: "synced" });
+      await db.syncQueue.where("localId").equals(patient.localId).delete();
+      pushed++;
+    }
+  }
+
+  return { pushed, errors };
+}

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { db, type LocalPatient } from "@/lib/db";
 import { getAllFieldNames } from "@/lib/form/sections";
+import { forcePushAll } from "@/lib/sync/engine";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Download } from "lucide-react";
+import { Download, CloudUpload } from "lucide-react";
 
 export default function ExportPage() {
   const t = useTranslations("export");
@@ -21,7 +22,17 @@ export default function ExportPage() {
   const [dateTo, setDateTo] = useState("");
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
   const [format, setFormat] = useState<"csv" | "xlsx">("xlsx");
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ pushed: number; errors: number } | null>(null);
   const allFields = getAllFieldNames();
+
+  async function handleForcePush() {
+    setSyncing(true);
+    setSyncResult(null);
+    const result = await forcePushAll();
+    setSyncResult(result);
+    setSyncing(false);
+  }
 
   useEffect(() => {
     setSelectedFields(allFields);
@@ -92,6 +103,35 @@ export default function ExportPage() {
   return (
     <div className="space-y-6 max-w-3xl">
       <h1 className="text-2xl font-bold">{t("title")}</h1>
+
+      {/* Sync to Cloud */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Sync All to Cloud</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Upload all local patients to Supabase so teammates with the same institution can see them.
+          </p>
+          <div className="flex items-center gap-4">
+            <Button onClick={handleForcePush} disabled={syncing} variant="outline">
+              <CloudUpload className="h-4 w-4 mr-2" />
+              {syncing ? "Uploading…" : `Push all ${patients.length} patients to cloud`}
+            </Button>
+            {syncResult && (
+              <span className="text-sm">
+                {syncResult.errors === 0
+                  ? <span className="text-green-600">{syncResult.pushed} patients uploaded successfully</span>
+                  : <span className="text-red-600">{syncResult.pushed} uploaded, {syncResult.errors} errors</span>
+                }
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            New users must register with the same institution name to see shared patients.
+          </p>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
