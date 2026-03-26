@@ -104,35 +104,6 @@ export default function ExportPage() {
     <div className="space-y-6 max-w-3xl">
       <h1 className="text-2xl font-bold">{t("title")}</h1>
 
-      {/* Sync to Cloud */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Sync All to Cloud</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Upload all local patients to Supabase so teammates with the same institution can see them.
-          </p>
-          <div className="flex items-center gap-4">
-            <Button onClick={handleForcePush} disabled={syncing} variant="outline">
-              <CloudUpload className="h-4 w-4 mr-2" />
-              {syncing ? "Uploading…" : `Push all ${patients.length} patients to cloud`}
-            </Button>
-            {syncResult && (
-              <span className="text-sm">
-                {syncResult.errors === 0
-                  ? <span className="text-green-600">{syncResult.pushed} patients uploaded successfully</span>
-                  : <span className="text-red-600">{syncResult.pushed} uploaded, {syncResult.errors} errors</span>
-                }
-              </span>
-            )}
-          </div>
-          <p className="text-xs text-muted-foreground">
-            New users must register with the same institution name to see shared patients.
-          </p>
-        </CardContent>
-      </Card>
-
       <Card>
         <CardHeader>
           <CardTitle className="text-base">{t("dateRange")}</CardTitle>
