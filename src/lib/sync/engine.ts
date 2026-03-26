@@ -139,9 +139,13 @@ export async function forcePushAll(): Promise<{ pushed: number; errors: number }
   let errors = 0;
 
   for (const patient of patients) {
+    // Strip fields that don't exist as Supabase columns
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { response_time_minutes, local_id: _lid, created_by: _cb, ...rest } = patient.data as Record<string, unknown>;
+
     const { error } = await supabase.from("patients").upsert(
       {
-        ...patient.data,
+        ...rest,
         local_id: patient.localId,
         created_by: userData.user.id,
         updated_at: patient.updatedAt,
