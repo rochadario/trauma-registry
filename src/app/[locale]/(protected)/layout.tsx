@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { LanguageToggle } from "@/components/layout/language-toggle";
 import { OfflineBanner } from "@/components/layout/offline-banner";
+import { useSync } from "@/lib/sync/use-sync";
 import {
   Users,
   LayoutDashboard,
@@ -15,6 +16,7 @@ import {
   Menu,
   X,
   LogOut,
+  MailOpen,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -29,6 +31,7 @@ export default function ProtectedLayout({
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState<{ email?: string } | null>(null);
+  useSync();
 
   useEffect(() => {
     const supabase = createClient();
@@ -63,6 +66,11 @@ export default function ProtectedLayout({
       href: `/${locale}/export`,
       label: t("export"),
       icon: Download,
+    },
+    {
+      href: `/${locale}/report-config`,
+      label: "Report Config",
+      icon: MailOpen,
     },
   ];
 
