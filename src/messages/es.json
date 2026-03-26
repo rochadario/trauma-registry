@@ -309,6 +309,9 @@
     "relationship_child": "Hijo/a",
     "relationship_other": "Otro",
 
+    "injury_setting": "Entorno de la Lesión",
+    "urban": "Urbano",
+    "rural": "Rural",
     "injury_date": "Fecha de Lesión",
     "injury_date_placeholder": "dd/mm/aaaa",
     "injury_time": "Hora de Lesión",
@@ -800,6 +803,8 @@
     "disposition_admitted": "Ingresado",
     "disposition_discharged": "Egresado / Alta",
     "disposition_transferred": "Trasladado",
+    "died_ed": "Fallecido en Emergencia",
+    "died_ward": "Fallecido en Sala",
     "disposition_died_ed": "Fallecido en Emergencia",
     "disposition_died_on_arrival": "Fallecido al ingreso (DOA)",
     "disposition_left_ama": "Alta voluntaria / Contra consejo médico",
