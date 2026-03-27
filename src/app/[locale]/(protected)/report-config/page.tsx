@@ -12,6 +12,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { CompletenessWidget } from "@/components/dashboard/completeness-widget";
 import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Mail, Plus, X, Send, CheckCircle2, Clock, AlertCircle, Loader2,
 } from "lucide-react";
 
@@ -50,6 +55,7 @@ export default function ReportConfigPage() {
   const [testStatus, setTestStatus] = useState<"idle" | "sent" | "error">("idle");
   const [loading, setLoading] = useState(true);
   const [patients, setPatients] = useState<LocalPatient[]>([]);
+  const [pendingRemove, setPendingRemove] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     const [supabaseData, localPatients] = await Promise.all([
@@ -74,14 +80,14 @@ export default function ReportConfigPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  async function save() {
+  async function save(overrideEmails?: string[]) {
     setSaving(true);
     setSaveStatus("idle");
     const supabase = createClient();
 
     const payload = {
       hospital_id: config.hospital_id,
-      recipient_emails: config.recipient_emails,
+      recipient_emails: overrideEmails ?? config.recipient_emails,
       enabled: config.enabled,
       report_sections: config.report_sections,
       updated_at: new Date().toISOString(),
@@ -123,15 +129,22 @@ export default function ReportConfigPage() {
     const email = newEmail.trim().toLowerCase();
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
     if (config.recipient_emails.includes(email)) return;
-    setConfig((prev) => ({ ...prev, recipient_emails: [...prev.recipient_emails, email] }));
+    const updated = [...config.recipient_emails, email];
+    setConfig((prev) => ({ ...prev, recipient_emails: updated }));
     setNewEmail("");
+    save(updated);
   }
 
-  function removeEmail(email: string) {
-    setConfig((prev) => ({
-      ...prev,
-      recipient_emails: prev.recipient_emails.filter((e) => e !== email),
-    }));
+  function confirmRemove(email: string) {
+    setPendingRemove(email);
+  }
+
+  function doRemove() {
+    if (!pendingRemove) return;
+    const updated = config.recipient_emails.filter((e) => e !== pendingRemove);
+    setConfig((prev) => ({ ...prev, recipient_emails: updated }));
+    setPendingRemove(null);
+    save(updated);
   }
 
   function toggleSection(id: string) {
@@ -207,8 +220,9 @@ export default function ReportConfigPage() {
                 <Badge key={email} variant="secondary" className="pl-3 pr-1 py-1 gap-1 text-sm">
                   {email}
                   <button
-                    onClick={() => removeEmail(email)}
+                    onClick={() => confirmRemove(email)}
                     className="ml-1 hover:text-destructive rounded-full"
+                    title="Quitar recipient"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -324,6 +338,23 @@ export default function ReportConfigPage() {
           </span>
         )}
       </div>
+      <AlertDialog open={!!pendingRemove} onOpenChange={(open) => { if (!open) setPendingRemove(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Quitar este contacto?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Estás a punto de eliminar <strong>{pendingRemove}</strong> de la lista de destinatarios del reporte semanal.
+              Esta acción se guardará automáticamente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={doRemove} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Sí, quitar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
