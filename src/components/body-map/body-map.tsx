@@ -8,217 +8,119 @@ interface BodyMapProps {
 }
 
 const REGIONS = [
-  {
-    id: "head_neck",
-    labelKey: "headNeck",
-    activeColor: "#f87171",
-    hoverColor: "#fecaca",
-  },
-  {
-    id: "chest",
-    labelKey: "chest",
-    activeColor: "#60a5fa",
-    hoverColor: "#bfdbfe",
-  },
-  {
-    id: "abdomen",
-    labelKey: "abdomen",
-    activeColor: "#4ade80",
-    hoverColor: "#bbf7d0",
-  },
-  {
-    id: "extremities",
-    labelKey: "extremities",
-    activeColor: "#c084fc",
-    hoverColor: "#e9d5ff",
-  },
-  {
-    id: "external",
-    labelKey: "external",
-    activeColor: "#facc15",
-    hoverColor: "#fef9c3",
-  },
+  { id: "head_neck",    labelKey: "headNeck",    color: "#ef4444", light: "#fee2e2" },
+  { id: "chest",        labelKey: "chest",        color: "#3b82f6", light: "#dbeafe" },
+  { id: "abdomen",      labelKey: "abdomen",      color: "#22c55e", light: "#dcfce7" },
+  { id: "extremities",  labelKey: "extremities",  color: "#a855f7", light: "#f3e8ff" },
+  { id: "external",     labelKey: "external",     color: "#f59e0b", light: "#fef3c7" },
 ] as const;
 
 export function BodyMap({ selectedRegions, onToggleRegion }: BodyMapProps) {
   const t = useTranslations("bodyMap");
 
-  function getFill(regionId: string) {
-    const region = REGIONS.find((r) => r.id === regionId);
-    if (!region) return "#e5e7eb";
-    return selectedRegions.includes(regionId) ? region.activeColor : "#e5e7eb";
+  function isActive(id: string) { return selectedRegions.includes(id); }
+  function fill(id: string) {
+    const r = REGIONS.find(r => r.id === id);
+    if (!r) return "#e5e7eb";
+    return isActive(id) ? r.color : "#f3f4f6";
   }
-
-  function getStroke(regionId: string) {
-    return selectedRegions.includes(regionId) ? "#374151" : "#9ca3af";
-  }
-
-  function getStrokeWidth(regionId: string) {
-    return selectedRegions.includes(regionId) ? "2" : "1.5";
-  }
+  function stroke(id: string) { return isActive(id) ? "#1f2937" : "#d1d5db"; }
+  function sw(id: string) { return isActive(id) ? "2" : "1"; }
 
   return (
-    <div className="flex flex-col items-center gap-4">
-      <svg
-        viewBox="0 0 200 420"
-        className="w-52 h-auto"
-        aria-label={t("title")}
-      >
-        {/* Head/Neck region */}
-        <g
-          onClick={() => onToggleRegion("head_neck")}
-          role="button"
-          tabIndex={0}
-          className="cursor-pointer"
-          onKeyDown={(e) => e.key === "Enter" && onToggleRegion("head_neck")}
-        >
+    <div className="flex flex-col items-center gap-5 w-full">
+      {/* SVG Figure */}
+      <svg viewBox="0 0 200 400" className="w-full max-w-[200px] h-auto drop-shadow-sm">
+
+        {/* HEAD / NECK */}
+        <g onClick={() => onToggleRegion("head_neck")} className="cursor-pointer" role="button" tabIndex={0}
+          onKeyDown={e => e.key === "Enter" && onToggleRegion("head_neck")}>
           <title>{t("headNeck")}</title>
           {/* Head */}
-          <ellipse
-            cx="100"
-            cy="38"
-            rx="24"
-            ry="28"
-            fill={getFill("head_neck")}
-            stroke={getStroke("head_neck")}
-            strokeWidth={getStrokeWidth("head_neck")}
-          />
+          <ellipse cx="100" cy="36" rx="26" ry="30"
+            fill={fill("head_neck")} stroke={stroke("head_neck")} strokeWidth={sw("head_neck")} />
           {/* Neck */}
-          <rect
-            x="91"
-            y="64"
-            width="18"
-            height="18"
-            fill={getFill("head_neck")}
-            stroke={getStroke("head_neck")}
-            strokeWidth={getStrokeWidth("head_neck")}
-          />
-          <text x="100" y="42" textAnchor="middle" fontSize="9" fill="#374151" fontWeight="500">
-            {t("headNeck")}
-          </text>
+          <rect x="92" y="64" width="16" height="16" rx="3"
+            fill={fill("head_neck")} stroke={stroke("head_neck")} strokeWidth={sw("head_neck")} />
         </g>
 
-        {/* Chest / Thorax region */}
-        <g
-          onClick={() => onToggleRegion("chest")}
-          role="button"
-          tabIndex={0}
-          className="cursor-pointer"
-          onKeyDown={(e) => e.key === "Enter" && onToggleRegion("chest")}
-        >
+        {/* CHEST */}
+        <g onClick={() => onToggleRegion("chest")} className="cursor-pointer" role="button" tabIndex={0}
+          onKeyDown={e => e.key === "Enter" && onToggleRegion("chest")}>
           <title>{t("chest")}</title>
-          <path
-            d="M 72 82 L 128 82 L 132 160 L 68 160 Z"
-            fill={getFill("chest")}
-            stroke={getStroke("chest")}
-            strokeWidth={getStrokeWidth("chest")}
-          />
-          <text x="100" y="128" textAnchor="middle" fontSize="9" fill="#374151" fontWeight="500">
-            {t("chest")}
-          </text>
+          <path d="M 70 80 Q 72 78 100 78 Q 128 78 130 80 L 134 158 Q 100 162 66 158 Z"
+            fill={fill("chest")} stroke={stroke("chest")} strokeWidth={sw("chest")} />
         </g>
 
-        {/* Abdomen / Pelvis region */}
-        <g
-          onClick={() => onToggleRegion("abdomen")}
-          role="button"
-          tabIndex={0}
-          className="cursor-pointer"
-          onKeyDown={(e) => e.key === "Enter" && onToggleRegion("abdomen")}
-        >
+        {/* ABDOMEN */}
+        <g onClick={() => onToggleRegion("abdomen")} className="cursor-pointer" role="button" tabIndex={0}
+          onKeyDown={e => e.key === "Enter" && onToggleRegion("abdomen")}>
           <title>{t("abdomen")}</title>
-          <path
-            d="M 68 160 L 132 160 L 128 220 L 72 220 Z"
-            fill={getFill("abdomen")}
-            stroke={getStroke("abdomen")}
-            strokeWidth={getStrokeWidth("abdomen")}
-          />
-          <text x="100" y="195" textAnchor="middle" fontSize="9" fill="#374151" fontWeight="500">
-            {t("abdomen")}
-          </text>
+          <path d="M 66 158 Q 100 162 134 158 L 130 222 Q 100 226 70 222 Z"
+            fill={fill("abdomen")} stroke={stroke("abdomen")} strokeWidth={sw("abdomen")} />
         </g>
 
-        {/* Left Arm */}
-        <g
-          onClick={() => onToggleRegion("extremities")}
-          role="button"
-          tabIndex={0}
-          className="cursor-pointer"
-          onKeyDown={(e) => e.key === "Enter" && onToggleRegion("extremities")}
-        >
+        {/* EXTREMITIES — arms + legs */}
+        <g onClick={() => onToggleRegion("extremities")} className="cursor-pointer" role="button" tabIndex={0}
+          onKeyDown={e => e.key === "Enter" && onToggleRegion("extremities")}>
           <title>{t("extremities")}</title>
           {/* Left arm */}
-          <path
-            d="M 72 84 L 58 84 Q 38 90 30 145 Q 26 175 24 210 L 36 210 Q 40 175 46 145 Q 52 110 68 90 Z"
-            fill={getFill("extremities")}
-            stroke={getStroke("extremities")}
-            strokeWidth={getStrokeWidth("extremities")}
-          />
+          <path d="M 70 82 L 54 88 Q 34 110 26 170 Q 22 192 22 210 L 36 210 Q 38 192 42 170 Q 50 116 66 94 Z"
+            fill={fill("extremities")} stroke={stroke("extremities")} strokeWidth={sw("extremities")} />
           {/* Left hand */}
-          <ellipse cx="30" cy="215" rx="8" ry="10"
-            fill={getFill("extremities")}
-            stroke={getStroke("extremities")}
-            strokeWidth={getStrokeWidth("extremities")}
-          />
+          <ellipse cx="29" cy="216" rx="9" ry="11"
+            fill={fill("extremities")} stroke={stroke("extremities")} strokeWidth={sw("extremities")} />
           {/* Right arm */}
-          <path
-            d="M 128 84 L 142 84 Q 162 90 170 145 Q 174 175 176 210 L 164 210 Q 160 175 154 145 Q 148 110 132 90 Z"
-            fill={getFill("extremities")}
-            stroke={getStroke("extremities")}
-            strokeWidth={getStrokeWidth("extremities")}
-          />
+          <path d="M 130 82 L 146 88 Q 166 110 174 170 Q 178 192 178 210 L 164 210 Q 162 192 158 170 Q 150 116 134 94 Z"
+            fill={fill("extremities")} stroke={stroke("extremities")} strokeWidth={sw("extremities")} />
           {/* Right hand */}
-          <ellipse cx="170" cy="215" rx="8" ry="10"
-            fill={getFill("extremities")}
-            stroke={getStroke("extremities")}
-            strokeWidth={getStrokeWidth("extremities")}
-          />
+          <ellipse cx="171" cy="216" rx="9" ry="11"
+            fill={fill("extremities")} stroke={stroke("extremities")} strokeWidth={sw("extremities")} />
           {/* Left leg */}
-          <path
-            d="M 72 220 L 88 220 Q 85 275 82 320 Q 80 350 78 390 L 62 390 Q 64 350 66 320 Q 68 275 72 220 Z"
-            fill={getFill("extremities")}
-            stroke={getStroke("extremities")}
-            strokeWidth={getStrokeWidth("extremities")}
-          />
+          <path d="M 70 222 L 88 222 Q 88 270 86 320 Q 84 355 82 388 L 64 388 Q 66 355 68 320 Q 70 270 70 222 Z"
+            fill={fill("extremities")} stroke={stroke("extremities")} strokeWidth={sw("extremities")} />
           {/* Left foot */}
-          <ellipse cx="70" cy="396" rx="10" ry="6"
-            fill={getFill("extremities")}
-            stroke={getStroke("extremities")}
-            strokeWidth={getStrokeWidth("extremities")}
-          />
+          <ellipse cx="73" cy="393" rx="12" ry="7"
+            fill={fill("extremities")} stroke={stroke("extremities")} strokeWidth={sw("extremities")} />
           {/* Right leg */}
-          <path
-            d="M 112 220 L 128 220 Q 132 275 134 320 Q 136 350 138 390 L 122 390 Q 120 350 118 320 Q 115 275 112 220 Z"
-            fill={getFill("extremities")}
-            stroke={getStroke("extremities")}
-            strokeWidth={getStrokeWidth("extremities")}
-          />
+          <path d="M 112 222 L 130 222 Q 130 270 132 320 Q 134 355 136 388 L 118 388 Q 116 355 114 320 Q 112 270 112 222 Z"
+            fill={fill("extremities")} stroke={stroke("extremities")} strokeWidth={sw("extremities")} />
           {/* Right foot */}
-          <ellipse cx="130" cy="396" rx="10" ry="6"
-            fill={getFill("extremities")}
-            stroke={getStroke("extremities")}
-            strokeWidth={getStrokeWidth("extremities")}
-          />
+          <ellipse cx="127" cy="393" rx="12" ry="7"
+            fill={fill("extremities")} stroke={stroke("extremities")} strokeWidth={sw("extremities")} />
         </g>
+
+        {/* Shoulder connectors (decorative) */}
+        <path d="M 70 80 Q 60 80 54 88" fill="none"
+          stroke={stroke("chest")} strokeWidth="1" />
+        <path d="M 130 80 Q 140 80 146 88" fill="none"
+          stroke={stroke("chest")} strokeWidth="1" />
       </svg>
 
-      {/* Region buttons for easy selection + External */}
-      <div className="flex flex-wrap justify-center gap-2">
+      {/* Region buttons — large tap targets */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 w-full">
         {REGIONS.map((region) => {
-          const isActive = selectedRegions.includes(region.id);
+          const active = isActive(region.id);
           return (
             <button
               key={region.id}
               type="button"
               onClick={() => onToggleRegion(region.id)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                isActive
-                  ? "text-white border-transparent"
-                  : "bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200"
-              }`}
-              style={isActive ? { backgroundColor: region.activeColor } : undefined}
+              className="flex items-center gap-2 px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all active:scale-95"
+              style={{
+                borderColor: active ? region.color : "#e5e7eb",
+                backgroundColor: active ? region.light : "#f9fafb",
+                color: active ? region.color : "#6b7280",
+              }}
             >
-              {t(region.labelKey)}
+              <span
+                className="w-3 h-3 rounded-full shrink-0"
+                style={{ backgroundColor: active ? region.color : "#d1d5db" }}
+              />
+              <span className="text-left leading-tight">{t(region.labelKey)}</span>
+              {active && (
+                <span className="ml-auto text-xs font-bold">✓</span>
+              )}
             </button>
           );
         })}

@@ -17,8 +17,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Search, Pencil, Trash2 } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Printer } from "lucide-react";
 import Link from "next/link";
+import { pullFromSupabase } from "@/lib/sync/engine";
 
 export default function PatientsPage() {
   const t = useTranslations();
@@ -28,7 +29,7 @@ export default function PatientsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
 
   useEffect(() => {
-    loadPatients();
+    pullFromSupabase().then(() => loadPatients()).catch(() => loadPatients());
   }, []);
 
   async function loadPatients() {
@@ -147,6 +148,11 @@ export default function PatientsPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  <Link href={`/${locale}/patients/${patient.localId}/print`}>
+                    <Button variant="ghost" size="icon" title="Print summary">
+                      <Printer className="h-4 w-4" />
+                    </Button>
+                  </Link>
                   <Link href={`/${locale}/patients/${patient.localId}`}>
                     <Button variant="ghost" size="icon">
                       <Pencil className="h-4 w-4" />

@@ -69,6 +69,10 @@ export const useWizardStore = create<WizardState>()(
       startNewRecord: (userId) => {
         const localId = uuidv4()
         const now = new Date().toISOString()
+        const d = new Date()
+        const yyyymm = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}`
+        const suffix = localId.replace(/-/g, '').slice(0, 8).toUpperCase()
+        const registry_number = `RESP-${yyyymm}-${suffix}`
         set({
           localId,
           currentStep: 1,
@@ -79,6 +83,7 @@ export const useWizardStore = create<WizardState>()(
             updated_at: now,
             record_status: 'draft',
             sync_status: 'pending',
+            registry_number,
           },
           isDirty: false,
         })

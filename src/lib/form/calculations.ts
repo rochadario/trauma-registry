@@ -6,6 +6,19 @@ export interface Calculation {
 
 
 /**
+ * Returns the difference in whole minutes between two HH:mm strings on the same date.
+ */
+function diffMinutes(dateStr: unknown, startTime: unknown, endTime: unknown): number | null {
+  if (typeof dateStr !== "string" || typeof startTime !== "string" || typeof endTime !== "string") return null;
+  if (!dateStr || !startTime || !endTime) return null;
+  const start = new Date(`${dateStr}T${startTime}:00`);
+  const end = new Date(`${dateStr}T${endTime}:00`);
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) return null;
+  const diff = Math.round((end.getTime() - start.getTime()) / 60000);
+  return diff >= 0 ? diff : null;
+}
+
+/**
  * Returns the difference in whole days between two ISO date strings.
  */
 function diffDays(startDate: unknown, endDate: unknown): number | null {
@@ -89,6 +102,19 @@ export const calculations: Calculation[] = [
     },
   },
 
+  // 5a–5e. Auto-populate AIS per region from max injury AIS severity
+  ...["head_neck", "chest", "abdomen", "extremities", "external"].map((region) => ({
+    field: `ais_${region}`,
+    dependencies: ["injuries"],
+    calculate: (values: Record<string, unknown>) => {
+      const injuries = values.injuries as { region: string; ais_severity: number }[] | undefined;
+      if (!Array.isArray(injuries)) return 0;
+      const regionInjuries = injuries.filter((inj) => inj.region === region);
+      if (regionInjuries.length === 0) return 0;
+      return Math.max(...regionInjuries.map((inj) => Number(inj.ais_severity) || 0));
+    },
+  })),
+
   // 5. ISS Score = sum of squares of the 3 highest AIS region scores
   {
     field: "iss_score",
@@ -148,6 +174,53 @@ export const calculations: Calculation[] = [
     calculate: (values) => {
       const days = diffDays(values.admission_date, values.outcome_date);
       return days !== null && days >= 0 ? days : undefined;
+    },
+  },
+
+  // 8. Triage Accuracy (bombero vs expert)
+  {
+    field: "triage_accuracy",
+    dependencies: ["triage_bombero", "triage_expert"],
+    calculate: (values) => {
+      const bombero = values.triage_bombero as string | undefined;
+      const expert = values.triage_expert as string | undefined;
+      if (!bombero || !expert || bombero === "none") return undefined;
+      const severity: Record<string, number> = { green: 1, yellow: 2, red: 3, black: 4 };
+      const bScore = severity[bombero] ?? 0;
+      const eScore = severity[expert] ?? 0;
+      if (bScore === eScore) return "correct";
+      if (bScore > eScore) return "over_triage";
+      return "under_triage";
+    },
+  },
+
+  // 9. Time to Trauma Team (minutes from admission)
+  {
+    field: "time_to_trauma_team_min",
+    dependencies: ["admission_date", "admission_time", "time_trauma_team"],
+    calculate: (values) => {
+      const m = diffMinutes(values.admission_date, values.admission_time, values.time_trauma_team);
+      return m !== null ? m : undefined;
+    },
+  },
+
+  // 10. Time to Transfusion (minutes from admission)
+  {
+    field: "time_to_transfusion_min",
+    dependencies: ["admission_date", "admission_time", "time_blood_transfusion"],
+    calculate: (values) => {
+      const m = diffMinutes(values.admission_date, values.admission_time, values.time_blood_transfusion);
+      return m !== null ? m : undefined;
+    },
+  },
+
+  // 11. Time to Airway Intervention (minutes from admission)
+  {
+    field: "time_to_airway_min",
+    dependencies: ["admission_date", "admission_time", "time_airway_intervention"],
+    calculate: (values) => {
+      const m = diffMinutes(values.admission_date, values.admission_time, values.time_airway_intervention);
+      return m !== null ? m : undefined;
     },
   },
 

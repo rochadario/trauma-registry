@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { LanguageToggle } from "@/components/layout/language-toggle";
 import { OfflineBanner } from "@/components/layout/offline-banner";
+import { BugReportDialog } from "@/components/layout/bug-report-dialog";
 import { useSync } from "@/lib/sync/use-sync";
 import {
   Users,
@@ -48,9 +49,9 @@ export default function ProtectedLayout({
 
   const navItems = [
     {
-      href: `/${locale}/patients`,
-      label: t("patients"),
-      icon: Users,
+      href: `/${locale}/dashboard`,
+      label: t("dashboard"),
+      icon: LayoutDashboard,
     },
     {
       href: `/${locale}/patients/new`,
@@ -58,9 +59,9 @@ export default function ProtectedLayout({
       icon: FilePlus,
     },
     {
-      href: `/${locale}/dashboard`,
-      label: t("dashboard"),
-      icon: LayoutDashboard,
+      href: `/${locale}/patients`,
+      label: t("patients"),
+      icon: Users,
     },
     {
       href: `/${locale}/export`,
@@ -79,7 +80,7 @@ export default function ProtectedLayout({
   }
 
   return (
-    <div className="min-h-screen flex">
+    <div className="h-screen flex overflow-hidden">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -88,9 +89,9 @@ export default function ProtectedLayout({
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar — fixed height, never scrolls */}
       <aside
-        className={`fixed md:static z-40 w-64 bg-card border-r min-h-screen flex flex-col transition-transform duration-200 ${
+        className={`fixed md:static z-40 w-64 h-screen bg-card border-r flex flex-col transition-transform duration-200 shrink-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         }`}
       >
@@ -143,8 +144,8 @@ export default function ProtectedLayout({
         </div>
       </aside>
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col min-h-screen">
+      {/* Main content — scrolls independently */}
+      <div className="flex-1 flex flex-col h-screen overflow-hidden">
         <header className="border-b bg-card px-4 py-3 flex items-center gap-4 md:hidden">
           <Button
             variant="ghost"
@@ -156,7 +157,15 @@ export default function ProtectedLayout({
           <span className="font-bold">RESPOND</span>
         </header>
         <OfflineBanner />
-        <main className="flex-1 p-4 md:p-6 overflow-auto">{children}</main>
+        <div className="hidden md:flex items-center justify-end px-4 py-1 border-b bg-card">
+          <BugReportDialog userEmail={user?.email} />
+        </div>
+        <main className="flex-1 p-4 md:p-6 overflow-auto">
+          {children}
+        </main>
+        <div className="md:hidden fixed top-14 right-3 z-20">
+          <BugReportDialog userEmail={user?.email} />
+        </div>
       </div>
     </div>
   );

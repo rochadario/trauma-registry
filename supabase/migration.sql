@@ -62,6 +62,8 @@ CREATE TABLE IF NOT EXISTS public.patients (
   injury_intent TEXT,
   injury_mechanism TEXT,
   injury_activity TEXT,
+  injury_lat DOUBLE PRECISION,  -- geospatial: latitude of injury location
+  injury_lng DOUBLE PRECISION,  -- geospatial: longitude of injury location
 
   -- Step 4: Road Traffic Details
   rtc_role TEXT,
@@ -257,3 +259,27 @@ CREATE POLICY "Users can insert sync log"
 CREATE POLICY "Users can view own sync log"
   ON public.sync_log FOR SELECT
   USING (user_id = auth.uid());
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Weekly report configuration
+-- ─────────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS report_configs (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  hospital_id text,
+  recipient_emails text[] NOT NULL DEFAULT '{}',
+  enabled     boolean NOT NULL DEFAULT false,
+  send_day    smallint NOT NULL DEFAULT 1,   -- 1=Monday … 7=Sunday
+  send_hour   smallint NOT NULL DEFAULT 7,   -- UTC hour
+  last_sent_at timestamptz,
+  created_at  timestamptz DEFAULT now(),
+  updated_at  timestamptz DEFAULT now()
+);
+
+ALTER TABLE report_configs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "authenticated users can manage report_configs"
+  ON report_configs FOR ALL USING (auth.role() = 'authenticated');
+
+-- Add report_sections column (run this if the table was already created)
+ALTER TABLE report_configs
+  ADD COLUMN IF NOT EXISTS report_sections text[]
+    DEFAULT ARRAY['summary','mortality','avgs','mechanisms','iss','completeness']::text[];

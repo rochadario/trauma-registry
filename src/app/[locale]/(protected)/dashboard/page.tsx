@@ -4,13 +4,14 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import { db, type LocalPatient } from "@/lib/db";
+import { pullFromSupabase } from "@/lib/sync/engine";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend, LineChart, Line, PieChart, Pie, Cell,
 } from "recharts";
-import { Users, TrendingDown, Activity, Clock, Timer } from "lucide-react";
+import { Users, TrendingDown, Activity, Clock, Timer, Bell, ShieldCheck, Siren, Stethoscope } from "lucide-react";
 import { CompletenessWidget } from "@/components/dashboard/completeness-widget";
 
 const InjuryMapWidget = dynamic(
@@ -53,7 +54,9 @@ export default function DashboardPage() {
     setPatients(all);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    pullFromSupabase().then(() => load()).catch(() => load());
+  }, [load]);
 
   const total = patients.length;
   const deaths = patients.filter((p) => (p.data.outcome as string)?.startsWith("died")).length;
@@ -143,6 +146,55 @@ export default function DashboardPage() {
     })).sort((a, b) => b.value - a.value);
   }, [patients, tf]);
 
+  // ── RESPOND-specific metrics ──────────────────────────────────────────────
+  const respondNotified = useMemo(() => {
+    const withData = patients.filter((p) => p.data.prehospital_notification !== undefined);
+    const notified = patients.filter((p) => p.data.prehospital_notification === true).length;
+    return { notified, total: withData.length, pct: withData.length > 0 ? ((notified / withData.length) * 100).toFixed(0) : null };
+  }, [patients]);
+
+  const respondTrained = useMemo(() => {
+    const withData = patients.filter((p) => p.data.transport_respond_trained !== undefined);
+    const trained = patients.filter((p) => p.data.transport_respond_trained === "yes").length;
+    return { trained, total: withData.length, pct: withData.length > 0 ? ((trained / withData.length) * 100).toFixed(0) : null };
+  }, [patients]);
+
+  const triageAccuracyData = useMemo(() => {
+    const correct = patients.filter((p) => p.data.triage_accuracy === "correct").length;
+    const over = patients.filter((p) => p.data.triage_accuracy === "over_triage").length;
+    const under = patients.filter((p) => p.data.triage_accuracy === "under_triage").length;
+    const total = correct + over + under;
+    return [
+      { name: "Correct", value: correct, fill: "#16a34a" },
+      { name: "Over-triage", value: over, fill: "#ca8a04" },
+      { name: "Under-triage", value: under, fill: "#dc2626" },
+    ].filter((d) => d.value > 0).map((d) => ({ ...d, pct: total > 0 ? ((d.value / total) * 100).toFixed(0) : "0" }));
+  }, [patients]);
+
+  const correctTriagePct = useMemo(() => {
+    const withTriage = patients.filter((p) => p.data.triage_accuracy !== undefined).length;
+    const correct = patients.filter((p) => p.data.triage_accuracy === "correct").length;
+    return withTriage > 0 ? ((correct / withTriage) * 100).toFixed(0) : null;
+  }, [patients]);
+
+  const avgTimeToTeam = useMemo(() => {
+    const vals = patients.map((p) => p.data.time_to_trauma_team_min as number).filter((v) => typeof v === "number" && v >= 0);
+    return vals.length ? Math.round(vals.reduce((a, b) => a + b) / vals.length) : null;
+  }, [patients]);
+
+  const transportData = useMemo(() => {
+    const c: Record<string, number> = {};
+    patients.forEach((p) => { const tt = (p.data.transport_type as string); if (tt) c[tt] = (c[tt] || 0) + 1; });
+    return Object.entries(c).map(([key, value]) => ({ name: tf.has(key) ? tf(key) : key, value })).sort((a, b) => b.value - a.value);
+  }, [patients, tf]);
+
+  const hemorrhageRate = useMemo(() => {
+    const needed = patients.filter((p) => p.data.prehospital_hemorrhage_needed === true).length;
+    const controlled = patients.filter((p) => p.data.prehospital_hemorrhage_needed === true && (p.data.prehospital_tourniquet || p.data.prehospital_wound_packing || p.data.prehospital_direct_pressure)).length;
+    return { needed, controlled, pct: needed > 0 ? ((controlled / needed) * 100).toFixed(0) : null };
+  }, [patients]);
+  // ─────────────────────────────────────────────────────────────────────────
+
   const noData = <p className="text-sm text-muted-foreground text-center py-10">{t("noData")}</p>;
 
   return (
@@ -230,11 +282,11 @@ export default function DashboardPage() {
             {issDistData.length === 0 ? noData : (
               <ResponsiveContainer width="100%" height={240}>
                 <PieChart>
-                  <Pie data={issDistData} dataKey="value" cx="50%" cy="44%" innerRadius={45} outerRadius={75} label={({ value }) => value}>
+                  <Pie data={issDistData} dataKey="value" cx="50%" cy="44%" innerRadius={45} outerRadius={75}>
                     {issDistData.map((e, i) => <Cell key={i} fill={e.fill} />)}
                   </Pie>
-                  <Tooltip />
-                  <Legend wrapperStyle={{ fontSize: 10 }} />
+                  <Tooltip formatter={(v, name) => [`${v} patients`, name]} />
+                  <Legend wrapperStyle={{ fontSize: 10 }} formatter={(value, entry) => `${value} (${(entry as {payload?: {value: number}}).payload?.value ?? 0})`} />
                 </PieChart>
               </ResponsiveContainer>
             )}
@@ -248,7 +300,7 @@ export default function DashboardPage() {
               <>
                 <ResponsiveContainer width="100%" height={160}>
                   <PieChart>
-                    <Pie data={sexData} dataKey="value" cx="50%" cy="50%" outerRadius={65} label={({ name, value }) => `${name}: ${value}`}>
+                    <Pie data={sexData} dataKey="value" cx="50%" cy="50%" outerRadius={65}>
                       {sexData.map((e, i) => <Cell key={i} fill={e.fill} />)}
                     </Pie>
                     <Tooltip />
@@ -258,7 +310,7 @@ export default function DashboardPage() {
                   {sexData.map((d) => (
                     <span key={d.name} className="flex items-center gap-1">
                       <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: d.fill }} />
-                      {total > 0 ? ((d.value / total) * 100).toFixed(0) : 0}%
+                      {d.name} — {total > 0 ? ((d.value / total) * 100).toFixed(0) : 0}%
                     </span>
                   ))}
                 </div>
@@ -305,6 +357,120 @@ export default function DashboardPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* ── RESPOND Program Section ──────────────────────────────────────── */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 pt-2">
+          <div className="h-1 w-6 rounded-full bg-primary" />
+          <h2 className="text-base font-bold tracking-tight">RESPOND Program Metrics</h2>
+          <div className="h-1 flex-1 rounded-full bg-border" />
+        </div>
+
+        {/* RESPOND stat cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <StatCard
+            icon={Bell}
+            label="Pre-notification Rate"
+            value={respondNotified.pct !== null ? `${respondNotified.pct}%` : "—"}
+            sub={respondNotified.total > 0 ? `${respondNotified.notified} / ${respondNotified.total} patients` : "No data yet"}
+          />
+          <StatCard
+            icon={ShieldCheck}
+            label="RESPOND-Trained Responder"
+            value={respondTrained.pct !== null ? `${respondTrained.pct}%` : "—"}
+            sub={respondTrained.total > 0 ? `${respondTrained.trained} / ${respondTrained.total} patients` : "No data yet"}
+          />
+          <StatCard
+            icon={Stethoscope}
+            label="Correct Triage Rate"
+            value={correctTriagePct !== null ? `${correctTriagePct}%` : "—"}
+            sub={triageAccuracyData.length > 0 ? `${triageAccuracyData.find(d => d.name === "Correct")?.value ?? 0} correct` : "No data yet"}
+          />
+          <StatCard
+            icon={Siren}
+            label="Avg Time to Trauma Team"
+            value={avgTimeToTeam !== null ? `${avgTimeToTeam} min` : "—"}
+            sub="from admission"
+          />
+        </div>
+
+        {/* Triage accuracy + Transport type */}
+        <div className="grid md:grid-cols-2 gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold">Triage Accuracy</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {triageAccuracyData.length === 0 ? noData : (
+                <>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <PieChart>
+                      <Pie data={triageAccuracyData} dataKey="value" cx="50%" cy="50%" innerRadius={50} outerRadius={80}>
+                        {triageAccuracyData.map((e, i) => <Cell key={i} fill={e.fill} />)}
+                      </Pie>
+                      <Tooltip formatter={(v, name) => [`${v} patients`, name]} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="flex justify-center gap-4 mt-1">
+                    {triageAccuracyData.map((d) => (
+                      <span key={d.name} className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: d.fill }} />
+                        {d.name} <span className="font-medium" style={{ color: d.fill }}>{d.pct}%</span>
+                      </span>
+                    ))}
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold">Transport Type</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {transportData.length === 0 ? noData : (
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={transportData} layout="vertical" margin={{ left: 110, right: 20 }}>
+                    <XAxis type="number" fontSize={11} />
+                    <YAxis type="category" dataKey="name" fontSize={10} width={110} />
+                    <Tooltip formatter={(v) => [`${v} patients`]} />
+                    <Bar dataKey="value" fill="#2563eb" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Hemorrhage control */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold">Prehospital Hemorrhage Control</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {hemorrhageRate.needed === 0 ? noData : (
+              <div className="flex items-center gap-6 py-4">
+                <div className="text-center">
+                  <p className="text-3xl font-bold">{hemorrhageRate.needed}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Needed hemorrhage control</p>
+                </div>
+                <div className="flex-1 h-4 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full bg-green-500 rounded-full transition-all"
+                    style={{ width: `${hemorrhageRate.pct ?? 0}%` }}
+                  />
+                </div>
+                <div className="text-center">
+                  <p className="text-3xl font-bold text-green-600">{hemorrhageRate.pct ?? 0}%</p>
+                  <p className="text-xs text-muted-foreground mt-1">Received intervention</p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+      {/* ─────────────────────────────────────────────────────────────────── */}
 
       {/* Data Completeness */}
       <CompletenessWidget patients={patients} />

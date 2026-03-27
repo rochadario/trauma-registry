@@ -71,6 +71,7 @@ const injuryEventSchema = z.object({
   ]),
   injury_mechanism: z.enum([
     "road_traffic",
+    "motorcycle",
     "fall",
     "burn",
     "firearm",
@@ -82,6 +83,7 @@ const injuryEventSchema = z.object({
     "animal_bite",
     "other",
   ]),
+  motorcycle_helmet: z.boolean().optional(),
   injury_activity: z.enum([
     "working",
     "traveling",
@@ -90,6 +92,9 @@ const injuryEventSchema = z.object({
     "sleeping",
     "other",
   ]),
+  // Geospatial coordinates — optional, captured via interactive map
+  injury_lat: z.number().min(-90).max(90).optional(),
+  injury_lng: z.number().min(-180).max(180).optional(),
 });
 
 // ============================================================================
@@ -183,10 +188,40 @@ const preHospitalCareSchema = z.object({
   prehospital_iv: z.boolean().optional(),
   prehospital_immobilization: z.boolean().optional(),
   prehospital_cpr: z.boolean().optional(),
+  prehospital_hemorrhage_needed: z.boolean().optional(),
+  prehospital_tourniquet: z.boolean().optional(),
+  prehospital_wound_packing: z.boolean().optional(),
+  prehospital_direct_pressure: z.boolean().optional(),
+  prehospital_tourniquet_correct: z.enum(["yes", "no", "not_applicable"]).optional(),
+  prehospital_spinal_correct: z.enum(["yes", "no", "not_applicable"]).optional(),
 });
 
 // ============================================================================
-// Step 7: Arrival Assessment
+// Step 7: Transport & Pre-notification (NEW)
+// ============================================================================
+
+const transportNotificationSchema = z.object({
+  transport_type: z.enum([
+    "bombero_voluntario",
+    "bombero_municipal",
+    "private_vehicle",
+    "ambulance",
+    "police",
+    "other",
+  ]).optional(),
+  transport_respond_trained: z.enum(["yes", "no", "unknown"]).optional(),
+  transport_bombero_company: z.string().optional(),
+  prehospital_notification: z.boolean().optional(),
+  notification_method: z.enum(["respond_app", "phone", "radio", "none"]).optional(),
+  notification_time: z.string().optional(),
+  notification_triage_sent: z.boolean().optional(),
+  triage_bombero: z.enum(["red", "yellow", "green", "black", "none"]).optional(),
+  triage_expert: z.enum(["red", "yellow", "green", "black"]).optional(),
+  triage_accuracy: z.enum(["correct", "over_triage", "under_triage"]).optional(),
+});
+
+// ============================================================================
+// Step 8: Arrival Assessment
 // ============================================================================
 
 const arrivalAssessmentSchema = z.object({
@@ -357,6 +392,15 @@ const outcomeSchema = z.object({
   los_days: z.coerce.number().min(0).optional(),
   icu_days: z.coerce.number().min(0).optional(),
   ventilator_days: z.coerce.number().min(0).optional(),
+  time_trauma_team: z.string().optional(),
+  time_blood_transfusion: z.string().optional(),
+  time_airway_intervention: z.string().optional(),
+  blood_transfusion_units: z.coerce.number().min(0).optional(),
+  followup_30day_status: z.enum(["alive", "dead", "lost_to_followup"]).optional(),
+  followup_30day_destination: z.enum(["home", "rehab", "other_hospital", "unknown"]).optional(),
+  time_to_trauma_team_min: z.coerce.number().min(0).optional(),
+  time_to_transfusion_min: z.coerce.number().min(0).optional(),
+  time_to_airway_min: z.coerce.number().min(0).optional(),
 });
 
 // ============================================================================
@@ -373,6 +417,9 @@ const recordInfoSchema = z.object({
   sync_status: z.enum(["pending", "synced", "conflict"]),
   local_id: z.string(),
   remote_id: z.string().optional(),
+  data_collector_id: z.string().optional(),
+  audit_flag: z.enum(["pending", "audited", "needs_correction"]).optional(),
+  audit_notes: z.string().optional(),
 });
 
 // ============================================================================
@@ -392,7 +439,9 @@ export const patientSchema = z.object({
   ...violenceDetailsSchema.shape,
   // Step 6: Pre-Hospital Care
   ...preHospitalCareSchema.shape,
-  // Step 7: Arrival Assessment
+  // Step 7: Transport & Pre-notification
+  ...transportNotificationSchema.shape,
+  // Step 8: Arrival Assessment
   ...arrivalAssessmentSchema.shape,
   // Step 8: Pupil Assessment
   ...pupilAssessmentSchema.shape,
@@ -429,15 +478,15 @@ export const stepSchemas = {
   4: roadTrafficDetailsSchema,
   5: violenceDetailsSchema,
   6: preHospitalCareSchema,
-  7: arrivalAssessmentSchema,
-  8: pupilAssessmentSchema,
-  9: bodyRegionInjuriesSchema,
-  10: aisIssSchema,
+  7: transportNotificationSchema,
+  8: arrivalAssessmentSchema,
+  9: pupilAssessmentSchema,
+  10: bodyRegionInjuriesSchema,
   11: diagnosticsSchema,
   12: proceduresSchema,
-  13: dispositionSchema,
-  14: surgeryDetailsSchema,
-  15: outcomeSchema,
+  13: surgeryDetailsSchema,
+  14: outcomeSchema,
+  15: dispositionSchema,
   16: recordInfoSchema,
 } as const;
 
@@ -500,7 +549,8 @@ export const fieldMetadata: Record<string, FieldMeta> = {
   injury_setting: { name: "injury_setting", type: "radio", step: 3, required: true, options: opts(["urban", "rural"]) },
   injury_location_type: { name: "injury_location_type", type: "select", step: 3, required: true, options: opts(["home", "road", "workplace", "school", "recreation", "public_place", "other"]) },
   injury_intent: { name: "injury_intent", type: "select", step: 3, required: true, options: opts(["unintentional", "assault", "self_harm", "legal_intervention", "conflict", "unknown"]) },
-  injury_mechanism: { name: "injury_mechanism", type: "select", step: 3, required: true, options: opts(["road_traffic", "fall", "burn", "firearm", "sharp_object", "blunt_object", "poisoning", "drowning", "hanging", "animal_bite", "other"]) },
+  injury_mechanism: { name: "injury_mechanism", type: "select", step: 3, required: true, options: opts(["road_traffic", "motorcycle", "fall", "burn", "firearm", "sharp_object", "blunt_object", "poisoning", "drowning", "hanging", "animal_bite", "other"]) },
+  motorcycle_helmet: { name: "motorcycle_helmet", type: "checkbox", step: 3, required: false },
   injury_activity: { name: "injury_activity", type: "select", step: 3, required: true, options: opts(["working", "traveling", "sports", "leisure", "sleeping", "other"]) },
 
   // Step 4
@@ -527,75 +577,69 @@ export const fieldMetadata: Record<string, FieldMeta> = {
   prehospital_iv: { name: "prehospital_iv", type: "checkbox", step: 6, required: false },
   prehospital_immobilization: { name: "prehospital_immobilization", type: "checkbox", step: 6, required: false },
   prehospital_cpr: { name: "prehospital_cpr", type: "checkbox", step: 6, required: false },
+  prehospital_hemorrhage_needed: { name: "prehospital_hemorrhage_needed", type: "checkbox", step: 6, required: false },
+  prehospital_tourniquet: { name: "prehospital_tourniquet", type: "checkbox", step: 6, required: false },
+  prehospital_wound_packing: { name: "prehospital_wound_packing", type: "checkbox", step: 6, required: false },
+  prehospital_direct_pressure: { name: "prehospital_direct_pressure", type: "checkbox", step: 6, required: false },
+  prehospital_tourniquet_correct: { name: "prehospital_tourniquet_correct", type: "select", step: 6, required: false, options: opts(["yes", "no", "not_applicable"]) },
+  prehospital_spinal_correct: { name: "prehospital_spinal_correct", type: "select", step: 6, required: false, options: opts(["yes", "no", "not_applicable"]) },
 
   // Step 7
-  arrival_gcs_eye: { name: "arrival_gcs_eye", type: "select", step: 7, required: true, options: [
+  transport_type: { name: "transport_type", type: "select", step: 7, required: false, options: opts(["bombero_voluntario", "bombero_municipal", "private_vehicle", "ambulance", "police", "other"]) },
+  transport_respond_trained: { name: "transport_respond_trained", type: "select", step: 7, required: false, options: opts(["yes", "no", "unknown"]) },
+  transport_bombero_company: { name: "transport_bombero_company", type: "text", step: 7, required: false },
+  prehospital_notification: { name: "prehospital_notification", type: "checkbox", step: 7, required: false },
+  notification_method: { name: "notification_method", type: "select", step: 7, required: false, options: opts(["respond_app", "phone", "radio", "none"]) },
+  notification_time: { name: "notification_time", type: "time", step: 7, required: false },
+  notification_triage_sent: { name: "notification_triage_sent", type: "checkbox", step: 7, required: false },
+  triage_bombero: { name: "triage_bombero", type: "select", step: 7, required: false, options: opts(["red", "yellow", "green", "black", "none"]) },
+  triage_expert: { name: "triage_expert", type: "select", step: 7, required: false, options: opts(["red", "yellow", "green", "black"]) },
+  triage_accuracy: { name: "triage_accuracy", type: "computed", step: 7, required: false, computed: true },
+
+  // Step 8
+  arrival_gcs_eye: { name: "arrival_gcs_eye", type: "select", step: 8, required: true, options: [
     { value: "1", labelKey: "fields.gcs_eye_1" }, { value: "2", labelKey: "fields.gcs_eye_2" },
     { value: "3", labelKey: "fields.gcs_eye_3" }, { value: "4", labelKey: "fields.gcs_eye_4" },
   ] },
-  arrival_gcs_verbal: { name: "arrival_gcs_verbal", type: "select", step: 7, required: true, options: [
+  arrival_gcs_verbal: { name: "arrival_gcs_verbal", type: "select", step: 8, required: true, options: [
     { value: "1", labelKey: "fields.gcs_verbal_1" }, { value: "2", labelKey: "fields.gcs_verbal_2" },
     { value: "3", labelKey: "fields.gcs_verbal_3" }, { value: "4", labelKey: "fields.gcs_verbal_4" },
     { value: "5", labelKey: "fields.gcs_verbal_5" },
   ] },
-  arrival_gcs_motor: { name: "arrival_gcs_motor", type: "select", step: 7, required: true, options: [
+  arrival_gcs_motor: { name: "arrival_gcs_motor", type: "select", step: 8, required: true, options: [
     { value: "1", labelKey: "fields.gcs_motor_1" }, { value: "2", labelKey: "fields.gcs_motor_2" },
     { value: "3", labelKey: "fields.gcs_motor_3" }, { value: "4", labelKey: "fields.gcs_motor_4" },
     { value: "5", labelKey: "fields.gcs_motor_5" }, { value: "6", labelKey: "fields.gcs_motor_6" },
   ] },
-  arrival_gcs_total: { name: "arrival_gcs_total", type: "computed", step: 7, required: false, computed: true },
-  arrival_avpu: { name: "arrival_avpu", type: "select", step: 7, required: true, options: opts(["alert", "voice", "pain", "unresponsive"]) },
-  arrival_systolic_bp: { name: "arrival_systolic_bp", type: "number", step: 7, required: false, min: 0, max: 300, inputMode: "numeric" },
-  arrival_diastolic_bp: { name: "arrival_diastolic_bp", type: "number", step: 7, required: false, min: 0, max: 200, inputMode: "numeric" },
-  arrival_heart_rate: { name: "arrival_heart_rate", type: "number", step: 7, required: false, min: 0, max: 300, inputMode: "numeric" },
-  arrival_respiratory_rate: { name: "arrival_respiratory_rate", type: "number", step: 7, required: false, min: 0, max: 80, inputMode: "numeric" },
-  arrival_spo2: { name: "arrival_spo2", type: "number", step: 7, required: false, min: 0, max: 100, inputMode: "numeric" },
-  arrival_temperature: { name: "arrival_temperature", type: "number", step: 7, required: false, min: 25, max: 45, inputMode: "decimal" },
-  arrival_shock_index: { name: "arrival_shock_index", type: "computed", step: 7, required: false, computed: true },
-
-  // Step 8
-  pupil_right_size: { name: "pupil_right_size", type: "select", step: 8, required: true, options: opts(["small", "medium", "large"]) },
-  pupil_right_reactive: { name: "pupil_right_reactive", type: "checkbox", step: 8, required: true },
-  pupil_left_size: { name: "pupil_left_size", type: "select", step: 8, required: true, options: opts(["small", "medium", "large"]) },
-  pupil_left_reactive: { name: "pupil_left_reactive", type: "checkbox", step: 8, required: true },
-  pupil_equal: { name: "pupil_equal", type: "computed", step: 8, required: false, computed: true },
+  arrival_gcs_total: { name: "arrival_gcs_total", type: "computed", step: 8, required: false, computed: true },
+  arrival_avpu: { name: "arrival_avpu", type: "select", step: 8, required: true, options: opts(["alert", "voice", "pain", "unresponsive"]) },
+  arrival_systolic_bp: { name: "arrival_systolic_bp", type: "number", step: 8, required: false, min: 0, max: 300, inputMode: "numeric" },
+  arrival_diastolic_bp: { name: "arrival_diastolic_bp", type: "number", step: 8, required: false, min: 0, max: 200, inputMode: "numeric" },
+  arrival_heart_rate: { name: "arrival_heart_rate", type: "number", step: 8, required: false, min: 0, max: 300, inputMode: "numeric" },
+  arrival_respiratory_rate: { name: "arrival_respiratory_rate", type: "number", step: 8, required: false, min: 0, max: 80, inputMode: "numeric" },
+  arrival_spo2: { name: "arrival_spo2", type: "number", step: 8, required: false, min: 0, max: 100, inputMode: "numeric" },
+  arrival_temperature: { name: "arrival_temperature", type: "number", step: 8, required: false, min: 25, max: 45, inputMode: "decimal" },
+  arrival_shock_index: { name: "arrival_shock_index", type: "computed", step: 8, required: false, computed: true },
 
   // Step 9
-  body_regions_affected: { name: "body_regions_affected", type: "body_map", step: 9, required: true },
-  injuries: { name: "injuries", type: "injury_list", step: 9, required: true },
-  number_of_injuries: { name: "number_of_injuries", type: "computed", step: 9, required: false, computed: true },
+  pupil_right_size: { name: "pupil_right_size", type: "select", step: 9, required: true, options: opts(["small", "medium", "large"]) },
+  pupil_right_reactive: { name: "pupil_right_reactive", type: "checkbox", step: 9, required: true },
+  pupil_left_size: { name: "pupil_left_size", type: "select", step: 9, required: true, options: opts(["small", "medium", "large"]) },
+  pupil_left_reactive: { name: "pupil_left_reactive", type: "checkbox", step: 9, required: true },
+  pupil_equal: { name: "pupil_equal", type: "computed", step: 9, required: false, computed: true },
 
   // Step 10
-  ais_head_neck: { name: "ais_head_neck", type: "select", step: 10, required: false, options: [
-    { value: "0", labelKey: "fields.ais_0" }, { value: "1", labelKey: "fields.ais_1" }, { value: "2", labelKey: "fields.ais_2" },
-    { value: "3", labelKey: "fields.ais_3" }, { value: "4", labelKey: "fields.ais_4" }, { value: "5", labelKey: "fields.ais_5" },
-    { value: "6", labelKey: "fields.ais_6" },
-  ] },
-  ais_face: { name: "ais_face", type: "select", step: 10, required: false, options: [
-    { value: "0", labelKey: "fields.ais_0" }, { value: "1", labelKey: "fields.ais_1" }, { value: "2", labelKey: "fields.ais_2" },
-    { value: "3", labelKey: "fields.ais_3" }, { value: "4", labelKey: "fields.ais_4" }, { value: "5", labelKey: "fields.ais_5" },
-    { value: "6", labelKey: "fields.ais_6" },
-  ] },
-  ais_chest: { name: "ais_chest", type: "select", step: 10, required: false, options: [
-    { value: "0", labelKey: "fields.ais_0" }, { value: "1", labelKey: "fields.ais_1" }, { value: "2", labelKey: "fields.ais_2" },
-    { value: "3", labelKey: "fields.ais_3" }, { value: "4", labelKey: "fields.ais_4" }, { value: "5", labelKey: "fields.ais_5" },
-    { value: "6", labelKey: "fields.ais_6" },
-  ] },
-  ais_abdomen: { name: "ais_abdomen", type: "select", step: 10, required: false, options: [
-    { value: "0", labelKey: "fields.ais_0" }, { value: "1", labelKey: "fields.ais_1" }, { value: "2", labelKey: "fields.ais_2" },
-    { value: "3", labelKey: "fields.ais_3" }, { value: "4", labelKey: "fields.ais_4" }, { value: "5", labelKey: "fields.ais_5" },
-    { value: "6", labelKey: "fields.ais_6" },
-  ] },
-  ais_extremities: { name: "ais_extremities", type: "select", step: 10, required: false, options: [
-    { value: "0", labelKey: "fields.ais_0" }, { value: "1", labelKey: "fields.ais_1" }, { value: "2", labelKey: "fields.ais_2" },
-    { value: "3", labelKey: "fields.ais_3" }, { value: "4", labelKey: "fields.ais_4" }, { value: "5", labelKey: "fields.ais_5" },
-    { value: "6", labelKey: "fields.ais_6" },
-  ] },
-  ais_external: { name: "ais_external", type: "select", step: 10, required: false, options: [
-    { value: "0", labelKey: "fields.ais_0" }, { value: "1", labelKey: "fields.ais_1" }, { value: "2", labelKey: "fields.ais_2" },
-    { value: "3", labelKey: "fields.ais_3" }, { value: "4", labelKey: "fields.ais_4" }, { value: "5", labelKey: "fields.ais_5" },
-    { value: "6", labelKey: "fields.ais_6" },
-  ] },
+  body_regions_affected: { name: "body_regions_affected", type: "body_map", step: 10, required: true },
+  injuries: { name: "injuries", type: "injury_list", step: 10, required: true },
+  number_of_injuries: { name: "number_of_injuries", type: "computed", step: 10, required: false, computed: true },
+
+  // Step 10 (AIS/ISS — part of body region step)
+  ais_head_neck: { name: "ais_head_neck", type: "computed", step: 10, required: false, computed: true },
+  ais_face:      { name: "ais_face",      type: "computed", step: 10, required: false, computed: true },
+  ais_chest:     { name: "ais_chest",     type: "computed", step: 10, required: false, computed: true },
+  ais_abdomen:   { name: "ais_abdomen",   type: "computed", step: 10, required: false, computed: true },
+  ais_extremities: { name: "ais_extremities", type: "computed", step: 10, required: false, computed: true },
+  ais_external:  { name: "ais_external",  type: "computed", step: 10, required: false, computed: true },
   iss_score: { name: "iss_score", type: "computed", step: 10, required: false, computed: true },
   iss_category: { name: "iss_category", type: "computed", step: 10, required: false, computed: true },
 
@@ -618,32 +662,41 @@ export const fieldMetadata: Record<string, FieldMeta> = {
   procedure_surgery_type: { name: "procedure_surgery_type", type: "text", step: 12, required: false },
   procedure_other: { name: "procedure_other", type: "text", step: 12, required: false },
 
-  // Step 13
-  disposition: { name: "disposition", type: "select", step: 13, required: true, options: opts(["admitted", "discharged", "transferred", "died_er", "left_ama", "left_absconded"]) },
-  disposition_department: { name: "disposition_department", type: "select", step: 13, required: false, options: opts(["surgery", "orthopedics", "neurosurgery", "icu", "pediatrics", "other"]) },
-  disposition_transfer_to: { name: "disposition_transfer_to", type: "text", step: 13, required: false },
-  disposition_date: { name: "disposition_date", type: "date", step: 13, required: true },
-  disposition_time: { name: "disposition_time", type: "time", step: 13, required: true },
+  // Step 13 — Surgery Details (conditional)
+  surgery_date: { name: "surgery_date", type: "date", step: 13, required: false },
+  surgery_time: { name: "surgery_time", type: "time", step: 13, required: false },
+  surgery_type: { name: "surgery_type", type: "select", step: 13, required: false, options: opts(["exploratory_laparotomy", "craniotomy", "thoracotomy", "orif", "amputation", "debridement", "other"]) },
+  surgery_findings: { name: "surgery_findings", type: "textarea", step: 13, required: false },
+  surgery_complications: { name: "surgery_complications", type: "checkbox", step: 13, required: false },
+  surgery_complication_details: { name: "surgery_complication_details", type: "textarea", step: 13, required: false },
 
-  // Step 14
-  surgery_date: { name: "surgery_date", type: "date", step: 14, required: false },
-  surgery_time: { name: "surgery_time", type: "time", step: 14, required: false },
-  surgery_type: { name: "surgery_type", type: "select", step: 14, required: false, options: opts(["exploratory_laparotomy", "craniotomy", "thoracotomy", "orif", "amputation", "debridement", "other"]) },
-  surgery_findings: { name: "surgery_findings", type: "textarea", step: 14, required: false },
-  surgery_complications: { name: "surgery_complications", type: "checkbox", step: 14, required: false },
-  surgery_complication_details: { name: "surgery_complication_details", type: "textarea", step: 14, required: false },
+  // Step 14 — Outcome
+  outcome: { name: "outcome", type: "select", step: 14, required: true, options: opts(["alive_discharge", "alive_transferred", "died_hospital", "died_or"]) },
+  outcome_date: { name: "outcome_date", type: "date", step: 14, required: false },
+  death_date: { name: "death_date", type: "date", step: 14, required: false },
+  death_time: { name: "death_time", type: "time", step: 14, required: false },
+  death_cause: { name: "death_cause", type: "textarea", step: 14, required: false },
+  los_days: { name: "los_days", type: "computed", step: 14, required: false, computed: true },
+  icu_days: { name: "icu_days", type: "number", step: 14, required: false, min: 0, inputMode: "numeric" },
+  ventilator_days: { name: "ventilator_days", type: "number", step: 14, required: false, min: 0, inputMode: "numeric" },
+  time_trauma_team: { name: "time_trauma_team", type: "time", step: 8, required: false },
+  time_blood_transfusion: { name: "time_blood_transfusion", type: "time", step: 14, required: false },
+  time_airway_intervention: { name: "time_airway_intervention", type: "time", step: 14, required: false },
+  blood_transfusion_units: { name: "blood_transfusion_units", type: "number", step: 14, required: false, min: 0, inputMode: "numeric" },
+  followup_30day_status: { name: "followup_30day_status", type: "select", step: 14, required: false, options: opts(["alive", "dead", "lost_to_followup"]) },
+  followup_30day_destination: { name: "followup_30day_destination", type: "select", step: 14, required: false, options: opts(["home", "rehab", "other_hospital", "unknown"]) },
+  time_to_trauma_team_min: { name: "time_to_trauma_team_min", type: "computed", step: 8, required: false, computed: true },
+  time_to_transfusion_min: { name: "time_to_transfusion_min", type: "computed", step: 14, required: false, computed: true },
+  time_to_airway_min: { name: "time_to_airway_min", type: "computed", step: 14, required: false, computed: true },
 
-  // Step 15
-  outcome: { name: "outcome", type: "select", step: 15, required: true, options: opts(["alive_discharge", "alive_transferred", "died_hospital", "died_or"]) },
-  outcome_date: { name: "outcome_date", type: "date", step: 15, required: false },
-  death_date: { name: "death_date", type: "date", step: 15, required: false },
-  death_time: { name: "death_time", type: "time", step: 15, required: false },
-  death_cause: { name: "death_cause", type: "textarea", step: 15, required: false },
-  los_days: { name: "los_days", type: "computed", step: 15, required: false, computed: true },
-  icu_days: { name: "icu_days", type: "number", step: 15, required: false, min: 0, inputMode: "numeric" },
-  ventilator_days: { name: "ventilator_days", type: "number", step: 15, required: false, min: 0, inputMode: "numeric" },
+  // Step 15 — Disposition
+  disposition: { name: "disposition", type: "select", step: 15, required: true, options: opts(["admitted", "discharged", "transferred", "died_er", "left_ama", "left_absconded"]) },
+  disposition_department: { name: "disposition_department", type: "select", step: 15, required: false, options: opts(["surgery", "orthopedics", "neurosurgery", "icu", "pediatrics", "other"]) },
+  disposition_transfer_to: { name: "disposition_transfer_to", type: "text", step: 15, required: false },
+  disposition_date: { name: "disposition_date", type: "date", step: 15, required: true },
+  disposition_time: { name: "disposition_time", type: "time", step: 15, required: true },
 
-  // Step 16
+  // Step 16 — Record Info
   record_status: { name: "record_status", type: "select", step: 16, required: true, options: opts(["draft", "complete", "verified"]) },
   created_by: { name: "created_by", type: "text", step: 16, required: true },
   created_at: { name: "created_at", type: "text", step: 16, required: true },
@@ -653,4 +706,7 @@ export const fieldMetadata: Record<string, FieldMeta> = {
   sync_status: { name: "sync_status", type: "computed", step: 16, required: true },
   local_id: { name: "local_id", type: "text", step: 16, required: true },
   remote_id: { name: "remote_id", type: "text", step: 16, required: false },
+  data_collector_id: { name: "data_collector_id", type: "text", step: 16, required: false },
+  audit_flag: { name: "audit_flag", type: "select", step: 16, required: false, options: opts(["pending", "audited", "needs_correction"]) },
+  audit_notes: { name: "audit_notes", type: "textarea", step: 16, required: false },
 };

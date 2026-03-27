@@ -12,27 +12,34 @@ export const conditionalRules: ConditionalRule[] = [
     condition: (value) => value === "other",
   },
 
+  // ---- Step 3: Injury Event ----
+  {
+    field: "motorcycle_helmet",
+    dependsOn: "injury_mechanism",
+    condition: (value) => value === "motorcycle",
+  },
+
   // ---- Step 4: Road Traffic Details ----
-  // All RTC fields shown when injury_mechanism === "road_traffic"
+  // All RTC fields shown when injury_mechanism is road_traffic or motorcycle
   {
     field: "rtc_role",
     dependsOn: "injury_mechanism",
-    condition: (value) => value === "road_traffic",
+    condition: (value) => value === "road_traffic" || value === "motorcycle",
   },
   {
     field: "rtc_vehicle_type",
     dependsOn: "injury_mechanism",
-    condition: (value) => value === "road_traffic",
+    condition: (value) => value === "road_traffic" || value === "motorcycle",
   },
   {
     field: "rtc_counterpart",
     dependsOn: "injury_mechanism",
-    condition: (value) => value === "road_traffic",
+    condition: (value) => value === "road_traffic" || value === "motorcycle",
   },
   {
     field: "rtc_alcohol_suspected",
     dependsOn: "injury_mechanism",
-    condition: (value) => value === "road_traffic",
+    condition: (value) => value === "road_traffic" || value === "motorcycle",
   },
   // rtc_helmet: only for motorcyclist or cyclist
   {
@@ -119,6 +126,85 @@ export const conditionalRules: ConditionalRule[] = [
     field: "prehospital_cpr",
     dependsOn: "prehospital_care",
     condition: (value) => value === true,
+  },
+  // Hemorrhage needed — shown when prehospital_care === true
+  {
+    field: "prehospital_hemorrhage_needed",
+    dependsOn: "prehospital_care",
+    condition: (value) => value === true,
+  },
+  // Hemorrhage control checkboxes — shown when hemorrhage_needed === true
+  {
+    field: "prehospital_tourniquet",
+    dependsOn: "prehospital_hemorrhage_needed",
+    condition: (value) => value === true,
+  },
+  {
+    field: "prehospital_wound_packing",
+    dependsOn: "prehospital_hemorrhage_needed",
+    condition: (value) => value === true,
+  },
+  {
+    field: "prehospital_direct_pressure",
+    dependsOn: "prehospital_hemorrhage_needed",
+    condition: (value) => value === true,
+  },
+  // Quality fields — only shown when the intervention was performed
+  {
+    field: "prehospital_tourniquet_correct",
+    dependsOn: "prehospital_tourniquet",
+    condition: (value) => value === true,
+  },
+  {
+    field: "prehospital_spinal_correct",
+    dependsOn: "prehospital_immobilization",
+    condition: (value) => value === true,
+  },
+  // Notification detail fields — shown when hospital was notified
+  {
+    field: "notification_method",
+    dependsOn: "prehospital_notification",
+    condition: (value) => value === true,
+  },
+  {
+    field: "notification_time",
+    dependsOn: "prehospital_notification",
+    condition: (value) => value === true,
+  },
+  {
+    field: "notification_triage_sent",
+    dependsOn: "prehospital_notification",
+    condition: (value) => value === true,
+  },
+  // Bombero company — shown when transport is bombero
+  {
+    field: "transport_bombero_company",
+    dependsOn: "transport_type",
+    condition: (value) =>
+      value === "bombero_voluntario" || value === "bombero_municipal",
+  },
+  // Time fields — shown when the corresponding procedure was performed
+  {
+    field: "time_blood_transfusion",
+    dependsOn: "procedure_blood_transfusion",
+    condition: (value) => value === true,
+  },
+  {
+    field: "time_airway_intervention",
+    dependsOn: "procedure_airway",
+    condition: (value) => value === true,
+  },
+  // Transfusion units — shown when transfusion time is entered
+  {
+    field: "blood_transfusion_units",
+    dependsOn: "time_blood_transfusion",
+    condition: (value) => typeof value === "string" && value.length > 0,
+  },
+  // 30-day destination — shown only when alive at 30 days
+  {
+    field: "followup_30day_destination",
+    dependsOn: "followup_30day_status",
+    condition: (value) => value === "alive",
   },
 
   // ---- Step 7: Arrival Assessment ----

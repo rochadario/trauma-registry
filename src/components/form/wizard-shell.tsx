@@ -14,7 +14,13 @@ import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { StepContent } from "./step-content";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Save, Send } from "lucide-react";
+import { ChevronLeft, ChevronRight, Save, Send, Eraser } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export function WizardShell() {
   const t = useTranslations();
@@ -121,6 +127,24 @@ export function WizardShell() {
     }
   }, [hasPrev, visibleSections, currentIdx, setStep]);
 
+  // Fields that are auto-managed and must never be manually cleared
+  const SYSTEM_FIELDS = new Set([
+    "created_by", "created_at", "updated_at", "local_id", "remote_id",
+    "sync_status", "record_status", "verified_by", "verified_at",
+  ]);
+
+  const handleClearStep = useCallback(() => {
+    if (!currentSection) return;
+    const cleared: Partial<PartialPatientRecord> = {};
+    for (const fieldName of currentSection.fields) {
+      if (!SYSTEM_FIELDS.has(fieldName)) {
+        (cleared as Record<string, unknown>)[fieldName] = undefined;
+      }
+    }
+    methods.reset({ ...getValues(), ...cleared });
+    updateFields({ ...getValues(), ...cleared });
+  }, [currentSection, methods, getValues, updateFields]);
+
   const handleSubmit = useCallback(async () => {
     const values = getValues();
     updateFields(values as Record<string, unknown>);
@@ -145,7 +169,8 @@ export function WizardShell() {
             <span>
               {t("patientList.step", {
                 step: currentVisibleIndex + 1,
-              }).replace("of 17", `of ${totalVisible}`)}
+                total: totalVisible,
+              })}
             </span>
             <span>{Math.round(progress)}%</span>
           </div>
@@ -177,13 +202,33 @@ export function WizardShell() {
 
         {/* Step content */}
         <Card>
-          <CardHeader>
+          <CardHeader className="relative">
             <CardTitle>
-              {t(`sections.${currentSection.step}.title`)}
+              {t(currentSection.titleKey)}
             </CardTitle>
             <CardDescription>
-              {t(`sections.${currentSection.step}.description`)}
+              {t(currentSection.descriptionKey)}
             </CardDescription>
+            {currentSection.id !== "record_info" && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-3 right-3 text-muted-foreground hover:text-destructive h-7 w-7"
+                      onClick={handleClearStep}
+                    >
+                      <Eraser className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{t("common.clearStep")}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </CardHeader>
           <CardContent>
             <StepContent step={currentStep} fields={currentSection.fields} />

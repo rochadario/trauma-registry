@@ -4,8 +4,6 @@ import { useFormContext } from "react-hook-form";
 import { useTranslations } from "next-intl";
 import { BodyMap } from "@/components/body-map/body-map";
 import { InjuryListField } from "./injury-list-field";
-import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
 
 interface InjuryEntry {
   region: string;
@@ -44,52 +42,56 @@ export function BodyMapStep() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <Label className="text-base font-medium">
-          {t("bodyMap.title")}
-        </Label>
-        <p className="text-sm text-muted-foreground mt-1">
-          {t("bodyMap.instruction")}
-        </p>
-      </div>
+      <p className="text-sm text-muted-foreground">
+        {t("bodyMap.instruction")}
+      </p>
 
-      <div className="flex flex-col md:flex-row gap-6">
-        <div className="flex-shrink-0">
-          <BodyMap
-            selectedRegions={selectedRegions}
-            onToggleRegion={toggleRegion}
-          />
-        </div>
-
-        <div className="flex-1 space-y-4">
-          <div>
-            <Label className="text-sm font-medium">
-              {t("bodyMap.selectedRegions")}
-            </Label>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {selectedRegions.length === 0 ? (
-                <span className="text-sm text-muted-foreground">
-                  {t("bodyMap.noRegionsSelected")}
-                </span>
-              ) : (
-                selectedRegions.map((region) => (
-                  <Badge
-                    key={region}
-                    variant="secondary"
-                    className="cursor-pointer"
-                    onClick={() => toggleRegion(region)}
-                  >
-                    {t(`bodyMap.${regionToKey(region)}`)}
-                    <span className="ml-1">&times;</span>
-                  </Badge>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+      <BodyMap
+        selectedRegions={selectedRegions}
+        onToggleRegion={toggleRegion}
+      />
 
       <InjuryListField regions={selectedRegions} />
+
+      <ISSummary />
+    </div>
+  );
+}
+
+function ISSummary() {
+  const t = useTranslations();
+  const { watch } = useFormContext();
+  const issScore = watch("iss_score") as number | undefined;
+  const issCategory = watch("iss_category") as string | undefined;
+
+  if (!issScore) return null;
+
+  const color =
+    issScore >= 75 ? "bg-red-900 text-white" :
+    issScore >= 50 ? "bg-red-600 text-white" :
+    issScore >= 25 ? "bg-orange-500 text-white" :
+    issScore >= 16 ? "bg-yellow-500 text-white" :
+    issScore >= 9  ? "bg-yellow-200 text-yellow-900" :
+                     "bg-green-100 text-green-800";
+
+  return (
+    <div className={`rounded-xl p-4 flex items-center justify-between ${color}`}>
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide opacity-80">
+          {t("fields.iss_score")}
+        </p>
+        <p className="text-3xl font-bold leading-none mt-1">{issScore}</p>
+      </div>
+      {issCategory && (
+        <div className="text-right">
+          <p className="text-xs font-semibold uppercase tracking-wide opacity-80">
+            {t("fields.iss_category")}
+          </p>
+          <p className="text-lg font-semibold mt-1">
+            {t.has(`fields.${issCategory}`) ? t(`fields.${issCategory}`) : issCategory}
+          </p>
+        </div>
+      )}
     </div>
   );
 }

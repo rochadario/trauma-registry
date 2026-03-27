@@ -15,6 +15,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { type FieldMeta } from "@/lib/form/schema";
+import { MunicipalityCombobox } from "./municipality-combobox";
+import { DepartmentCombobox } from "./department-combobox";
 
 interface FormFieldRendererProps {
   field: FieldMeta;
@@ -34,13 +36,80 @@ export function FormFieldRenderer({ field, disabled }: FormFieldRendererProps) {
   const error = errors[field.name];
   const label = t(`fields.${field.name}`);
 
+  if (field.name === "triage_accuracy" && field.computed) {
+    const accuracy = value as string | undefined;
+    if (!accuracy) return null;
+    const config = {
+      correct:      { bg: "bg-green-500",  icon: "✓", text: "text-white" },
+      over_triage:  { bg: "bg-yellow-400", icon: "▲", text: "text-yellow-900" },
+      under_triage: { bg: "bg-red-600",    icon: "▼", text: "text-white" },
+    }[accuracy] ?? { bg: "bg-muted", icon: "?", text: "text-muted-foreground" };
+
+    return (
+      <div className={`rounded-xl p-4 flex items-center gap-4 ${config.bg} ${config.text}`}>
+        <span className="text-3xl font-bold leading-none">{config.icon}</span>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide opacity-80">{label}</p>
+          <p className="text-xl font-bold mt-0.5">
+            {t.has(`fields.${accuracy}`) ? t(`fields.${accuracy}`) : accuracy}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (field.computed) {
+    const isBool = typeof value === "boolean";
     return (
       <div className="space-y-1">
         <Label className="text-muted-foreground">{label}</Label>
-        <div className="px-3 py-2 bg-muted rounded-md text-sm font-mono">
-          {value !== undefined && value !== null ? String(value) : "—"}
+        <div className={`px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2 ${
+          isBool
+            ? value
+              ? "bg-green-50 text-green-700 border border-green-200"
+              : "bg-red-50 text-red-700 border border-red-200"
+            : "bg-muted font-mono"
+        }`}>
+          {isBool ? (value ? "✓ " + t("common.yes") : "✗ " + t("common.no")) : (value !== undefined && value !== null ? (t.has(`fields.${value}`) ? t(`fields.${value}` as never) : String(value)) : "—")}
         </div>
+      </div>
+    );
+  }
+
+  if (field.name === "patient_department") {
+    return (
+      <div className="space-y-1">
+        <Label htmlFor={field.name}>
+          {label}
+          {field.required && <span className="text-destructive ml-1">*</span>}
+        </Label>
+        <DepartmentCombobox
+          value={(value as string) || ""}
+          onChange={(v) => setValue(field.name, v, { shouldDirty: true })}
+          disabled={disabled}
+        />
+        {error && (
+          <p className="text-xs text-destructive">{String(error.message)}</p>
+        )}
+      </div>
+    );
+  }
+
+  if (field.name === "patient_municipality") {
+    return (
+      <div className="space-y-1">
+        <Label htmlFor={field.name}>
+          {label}
+          {field.required && <span className="text-destructive ml-1">*</span>}
+        </Label>
+        <MunicipalityCombobox
+          value={(value as string) || ""}
+          onChange={(v) => setValue(field.name, v, { shouldDirty: true })}
+          disabled={disabled}
+        />
+        {error && (
+          <p className="text-xs text-destructive">{String(error.message)}</p>
+        )}
       </div>
     );
   }
@@ -57,6 +126,8 @@ export function FormFieldRenderer({ field, disabled }: FormFieldRendererProps) {
             id={field.name}
             {...register(field.name)}
             disabled={disabled}
+            readOnly={field.name === "registry_number"}
+            className={field.name === "registry_number" ? "bg-muted text-muted-foreground cursor-default" : undefined}
             placeholder={t.has(`fields.${field.name}_placeholder`) ? t(`fields.${field.name}_placeholder`) : undefined}
           />
           {error && (
@@ -78,7 +149,9 @@ export function FormFieldRenderer({ field, disabled }: FormFieldRendererProps) {
             inputMode={field.inputMode || "numeric"}
             min={field.min}
             max={field.max}
-            {...register(field.name, { valueAsNumber: true })}
+            {...register(field.name, {
+              setValueAs: (v) => (v === "" || v === null || v === undefined ? undefined : Number(v)),
+            })}
             disabled={disabled}
           />
           {error && (
