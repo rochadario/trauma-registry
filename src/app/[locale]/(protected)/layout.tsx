@@ -80,7 +80,7 @@ export default function ProtectedLayout({
   }
 
   return (
-    <div className="h-screen flex overflow-hidden">
+    <div className="h-dvh flex overflow-hidden">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -91,7 +91,7 @@ export default function ProtectedLayout({
 
       {/* Sidebar — fixed height, never scrolls */}
       <aside
-        className={`fixed md:static z-40 w-64 h-screen bg-card border-r flex flex-col transition-transform duration-200 shrink-0 ${
+        className={`fixed md:static z-40 w-64 h-dvh bg-card border-r flex flex-col transition-transform duration-200 shrink-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         }`}
       >
@@ -125,7 +125,7 @@ export default function ProtectedLayout({
             </Link>
           ))}
         </nav>
-        <div className="p-4 border-t space-y-2">
+        <div className="p-4 border-t space-y-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <div className="text-xs text-muted-foreground truncate">
             {user?.email}
           </div>
@@ -145,7 +145,7 @@ export default function ProtectedLayout({
       </aside>
 
       {/* Main content — scrolls independently */}
-      <div className="flex-1 flex flex-col h-screen overflow-hidden">
+      <div className="flex-1 flex flex-col h-dvh overflow-hidden">
         <header className="border-b bg-card px-4 py-3 flex items-center gap-2 md:hidden">
           <Button
             variant="ghost"

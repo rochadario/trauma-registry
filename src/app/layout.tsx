@@ -5,6 +5,11 @@ export const metadata: Metadata = {
   title: "RESPOND Guatemala - Trauma Registry",
   description: "Trauma registry for Hospital Roosevelt and partner institutions in Guatemala",
   manifest: "/manifest.json",
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    viewportFit: "cover",
+  },
 };
 
 export default function RootLayout({
