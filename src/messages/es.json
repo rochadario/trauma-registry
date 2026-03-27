@@ -38,6 +38,7 @@
     "patients": "Pacientes",
     "dashboard": "Panel",
     "newPatient": "Nuevo Paciente",
+    "reportConfig": "Configuración de reportes",
     "editPatient": "Editar Paciente",
     "required": "Obligatorio",
     "optional": "Opcional",

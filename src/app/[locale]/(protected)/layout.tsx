@@ -70,7 +70,7 @@ export default function ProtectedLayout({
     },
     {
       href: `/${locale}/report-config`,
-      label: "Report Config",
+      label: t("reportConfig"),
       icon: MailOpen,
     },
   ];
@@ -146,7 +146,7 @@ export default function ProtectedLayout({
 
       {/* Main content — scrolls independently */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
-        <header className="border-b bg-card px-4 py-3 flex items-center gap-4 md:hidden">
+        <header className="border-b bg-card px-4 py-3 flex items-center gap-2 md:hidden">
           <Button
             variant="ghost"
             size="icon"
@@ -154,7 +154,8 @@ export default function ProtectedLayout({
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <span className="font-bold">RESPOND</span>
+          <span className="font-bold flex-1">RESPOND</span>
+          <BugReportDialog userEmail={user?.email} />
         </header>
         <OfflineBanner />
         <div className="hidden md:flex items-center justify-end px-4 py-1 border-b bg-card">
@@ -163,9 +164,6 @@ export default function ProtectedLayout({
         <main className="flex-1 p-4 md:p-6 overflow-auto">
           {children}
         </main>
-        <div className="md:hidden fixed top-14 right-3 z-20">
-          <BugReportDialog userEmail={user?.email} />
-        </div>
       </div>
     </div>
   );
