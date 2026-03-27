@@ -302,7 +302,7 @@ export default function ReportConfigPage() {
 
       {/* Actions */}
       <div className="flex items-center gap-3 flex-wrap">
-        <Button onClick={save} disabled={saving} className="min-w-28">
+        <Button onClick={() => save()} disabled={saving} className="min-w-28">
           {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
           {saving ? "Saving…" : "Save settings"}
         </Button>
