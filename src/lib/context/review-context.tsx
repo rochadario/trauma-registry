@@ -5,6 +5,7 @@ import {
   useContext,
   useState,
   useCallback,
+  useEffect,
   useRef,
   type ReactNode,
 } from "react";
@@ -50,8 +51,30 @@ export function ReviewProvider({
   children: ReactNode;
   reviewerName: string;
 }) {
-  const sessionId = useRef(`review_${Date.now()}`).current;
+  // Persist session_id within the browser tab so page navigations don't reset the count
+  const sessionId = useRef<string>(
+    typeof window !== "undefined"
+      ? (sessionStorage.getItem("review_session_id") ?? (() => {
+          const id = `review_${Date.now()}`;
+          sessionStorage.setItem("review_session_id", id);
+          return id;
+        })())
+      : `review_${Date.now()}`
+  ).current;
+
   const [comments, setComments] = useState<ReviewComment[]>([]);
+
+  // Load existing comments from Supabase on mount
+  useEffect(() => {
+    const supabase = createClient();
+    supabase
+      .from("field_reviews")
+      .select("*")
+      .eq("session_id", sessionId)
+      .then(({ data }) => {
+        if (data && data.length > 0) setComments(data as ReviewComment[]);
+      });
+  }, [sessionId]);
 
   const saveComment = useCallback(
     async (
