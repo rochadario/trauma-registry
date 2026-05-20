@@ -18,6 +18,8 @@ import {
   X,
   LogOut,
   MailOpen,
+  ClipboardList,
+  MessageSquare,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -89,6 +91,19 @@ export default function ProtectedLayout({
     },
   ];
 
+  const reviewItems = [
+    {
+      href: `/${locale}/patients/new?review=true&reviewer=Revision+v1`,
+      label: t("reviewMode"),
+      icon: ClipboardList,
+    },
+    {
+      href: `/${locale}/review`,
+      label: t("reviewSummary"),
+      icon: MessageSquare,
+    },
+  ];
+
   function isActive(href: string) {
     return pathname === href;
   }
@@ -122,7 +137,7 @@ export default function ProtectedLayout({
             <X className="h-5 w-5" />
           </Button>
         </div>
-        <nav className="flex-1 p-2 space-y-1">
+        <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
           {navItems.map((item) => (
             <Link
               key={item.href}
@@ -132,6 +147,27 @@ export default function ProtectedLayout({
                 isActive(item.href)
                   ? "bg-primary text-primary-foreground"
                   : "hover:bg-muted"
+              }`}
+            >
+              <item.icon className="h-4 w-4" />
+              {item.label}
+            </Link>
+          ))}
+
+          <div className="pt-3 pb-1">
+            <p className="px-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+              Revisión
+            </p>
+          </div>
+          {reviewItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={() => setSidebarOpen(false)}
+              className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+                isActive(item.href)
+                  ? "bg-amber-100 text-amber-800"
+                  : "hover:bg-muted text-muted-foreground"
               }`}
             >
               <item.icon className="h-4 w-4" />

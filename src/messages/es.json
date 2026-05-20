@@ -39,6 +39,8 @@
     "dashboard": "Panel",
     "newPatient": "Nuevo Paciente",
     "reportConfig": "Configuración de reportes",
+    "reviewMode": "Modo revisión",
+    "reviewSummary": "Ver comentarios",
     "editPatient": "Editar Paciente",
     "required": "Obligatorio",
     "optional": "Opcional",

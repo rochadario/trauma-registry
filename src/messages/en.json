@@ -39,6 +39,8 @@
     "dashboard": "Dashboard",
     "newPatient": "New Patient",
     "reportConfig": "Report Config",
+    "reviewMode": "Review mode",
+    "reviewSummary": "View comments",
     "editPatient": "Edit Patient",
     "required": "Required",
     "optional": "Optional",
