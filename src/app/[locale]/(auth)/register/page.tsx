@@ -122,15 +122,9 @@ export default function RegisterPage() {
                   <SelectValue placeholder={t("fields.hospital_id_placeholder")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="hospital_roosevelt">
-                    {t("fields.hospital_roosevelt")}
-                  </SelectItem>
-                  <SelectItem value="hospital_san_juan">
-                    {t("fields.hospital_san_juan")}
-                  </SelectItem>
-                  <SelectItem value="igss_zona_9">
-                    {t("fields.igss_zona_9")}
-                  </SelectItem>
+                  <SelectItem value="hospital">{t("fields.hospital")}</SelectItem>
+                  <SelectItem value="health_center">{t("fields.health_center")}</SelectItem>
+                  <SelectItem value="trauma_center">{t("fields.trauma_center")}</SelectItem>
                   <SelectItem value="other">{t("common.other")}</SelectItem>
                 </SelectContent>
               </Select>

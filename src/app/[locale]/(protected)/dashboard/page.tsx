@@ -358,7 +358,8 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* ── RESPOND Program Section ──────────────────────────────────────── */}
+      {/* ── RESPOND Program Section — hidden on opentraumaregistry.org ──── */}
+      {typeof window !== "undefined" && window.location.hostname.includes("opentraumaregistry") ? null : (
       <div className="space-y-4">
         <div className="flex items-center gap-2 pt-2">
           <div className="h-1 w-6 rounded-full bg-primary" />
@@ -470,6 +471,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+      )}
       {/* ─────────────────────────────────────────────────────────────────── */}
 
       {/* Data Completeness */}

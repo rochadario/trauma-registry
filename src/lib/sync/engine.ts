@@ -1,6 +1,23 @@
 import { db } from "@/lib/db";
 import { createClient } from "@/lib/supabase/client";
 
+async function pushToRedcap(data: Record<string, unknown>): Promise<void> {
+  const res = await fetch("/api/redcap", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  const result = await res.json();
+  console.log("[REDCap sync]", result);
+}
+
+// Convert empty strings to null so Postgres typed columns (DATE, INTEGER, etc.) don't reject them
+function sanitize(data: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(data).map(([k, v]) => [k, v === "" ? null : v])
+  );
+}
+
 export async function pushToSupabase() {
   const supabase = createClient();
   const queue = await db.syncQueue.orderBy("timestamp").toArray();
@@ -18,23 +35,31 @@ export async function pushToSupabase() {
       } else {
         // Upsert by local_id
         const { error } = await supabase.from("patients").upsert(
-          {
+          sanitize({
             ...item.data,
             local_id: item.localId,
             created_by: userData.user.id,
             updated_at: item.timestamp,
-          },
+          }),
           { onConflict: "local_id" }
         );
 
         if (error) {
           console.error("Sync push error:", error);
-          // Increment retries
-          await db.syncQueue.update(item.id!, {
-            retries: item.retries + 1,
-          });
+          // RLS violation (42501): record belongs to another user — drop from queue
+          if (error.code === "42501") {
+            console.warn("RLS violation for", item.localId, "— removing from sync queue");
+            await db.syncQueue.delete(item.id!);
+          } else {
+            await db.syncQueue.update(item.id!, { retries: item.retries + 1 });
+          }
           continue;
         }
+
+        // Fire-and-forget REDCap sync — does not block or fail the main sync
+        pushToRedcap(item.data as Record<string, unknown>).catch((err) =>
+          console.warn("REDCap sync failed (non-blocking):", err)
+        );
       }
 
       // Update local patient sync status
@@ -89,7 +114,7 @@ export async function pullFromSupabase() {
         localId: remote.local_id,
         remoteId: remote.id,
         data: remote,
-        currentStep: 17,
+        currentStep: 1,
         status: remote.record_status || "complete",
         syncStatus: "synced",
         createdBy: remote.created_by,
@@ -144,13 +169,13 @@ export async function forcePushAll(): Promise<{ pushed: number; errors: number }
     const { response_time_minutes, local_id: _lid, created_by: _cb, ...rest } = patient.data as Record<string, unknown>;
 
     const { error } = await supabase.from("patients").upsert(
-      {
+      sanitize({
         ...rest,
         local_id: patient.localId,
         created_by: userData.user.id,
         updated_at: patient.updatedAt,
         record_status: patient.status,
-      },
+      }),
       { onConflict: "local_id" }
     );
 

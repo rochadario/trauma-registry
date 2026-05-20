@@ -144,7 +144,7 @@ export default function PatientsPage() {
                     {patient.data.hospital_id ? t(`fields.${patient.data.hospital_id as string}`) : null}
                     {patient.data.admission_date ? ` - ${String(patient.data.admission_date)}` : null}
                     {" · "}
-                    {t("patientList.step", { step: patient.currentStep })}
+                    {t("patientList.step", { step: patient.currentStep, total: 16 })}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">

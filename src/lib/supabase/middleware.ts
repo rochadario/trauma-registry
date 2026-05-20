@@ -39,25 +39,22 @@ export async function updateSession(request: NextRequest) {
   const localeMatch = pathname.match(/^\/(en|es)/)
   const locale = localeMatch ? localeMatch[1] : 'es'
 
+  const isAuthPage = pathname.includes('/login') || pathname.includes('/register')
+  const isDemoPage = pathname.includes('/demo')
+  const isRootPage = pathname === `/${locale}` || pathname === '/'
+
   // Auth pages - redirect to app if already logged in
-  if (user && (pathname.includes('/login') || pathname.includes('/register'))) {
+  if (user && isAuthPage) {
     const url = request.nextUrl.clone()
     url.pathname = `/${locale}/patients`
     return NextResponse.redirect(url)
   }
 
   // Protected pages - redirect to login if not logged in
-  if (!user && pathname.includes('/(protected)') ||
-      (!user && !pathname.includes('/login') && !pathname.includes('/register') && pathname !== `/${locale}`)) {
-    // Allow the root locale page and auth pages
-    const isAuthPage = pathname.includes('/login') || pathname.includes('/register')
-    const isRootPage = pathname === `/${locale}` || pathname === '/'
-
-    if (!isAuthPage && !isRootPage) {
-      const url = request.nextUrl.clone()
-      url.pathname = `/${locale}/login`
-      return NextResponse.redirect(url)
-    }
+  if (!user && !isAuthPage && !isRootPage && !isDemoPage) {
+    const url = request.nextUrl.clone()
+    url.pathname = `/${locale}/login`
+    return NextResponse.redirect(url)
   }
 
   return supabaseResponse

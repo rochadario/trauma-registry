@@ -3,11 +3,14 @@
 import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import { fieldMetadata } from "@/lib/form/schema";
+import { formSections } from "@/lib/form/sections";
 import { FormFieldRenderer } from "./form-field-renderer";
 import { ConditionalField } from "./conditional-field";
 import { BodyMapStep } from "./body-map-step";
 import { InjuryListField } from "./injury-list-field";
 import { RecordInfoStep } from "./record-info-step";
+import { ReviewCommentButton } from "./review-comment-button";
+import { useReview } from "@/lib/context/review-context";
 
 import { useWizardStore } from "@/lib/store/wizard-store";
 import { VitalsAlerts } from "./vitals-alerts";
@@ -63,6 +66,8 @@ interface StepContentProps {
 
 export function StepContent({ step, fields }: StepContentProps) {
   const t = useTranslations();
+  const review = useReview();
+
   // Step 10 has the body map — render it specially
   if (step === 10) {
     return <BodyMapStep />;
@@ -73,6 +78,10 @@ export function StepContent({ step, fields }: StepContentProps) {
     return <RecordInfoStep />;
   }
 
+  // Build step label for review comments
+  const section = formSections.find((s) => s.step === step);
+  const stepLabel = section ? t(section.titleKey) : `Paso ${step}`;
+
   return (
     <div className="space-y-4">
       {fields.map((fieldName) => {
@@ -81,6 +90,9 @@ export function StepContent({ step, fields }: StepContentProps) {
         // Skip fields that are handled specially
         if (!meta) return null;
         if (meta.type === "body_map" || meta.type === "injury_list") return null;
+
+        let fieldLabel: string;
+        try { fieldLabel = t(`fields.${fieldName}` as Parameters<typeof t>[0]); } catch { fieldLabel = fieldName; }
 
         return (
           <ConditionalField key={fieldName} fieldName={fieldName}>
@@ -99,7 +111,17 @@ export function StepContent({ step, fields }: StepContentProps) {
                 {t("form.sections.prehospital_care.quality_label")}
               </p>
             )}
-            <FormFieldRenderer field={meta} />
+            <div className={review ? "relative group pr-6" : undefined}>
+              <FormFieldRenderer field={meta} />
+              {review && (
+                <ReviewCommentButton
+                  fieldName={fieldName}
+                  fieldLabel={fieldLabel}
+                  stepId={`step_${step}`}
+                  stepLabel={stepLabel}
+                />
+              )}
+            </div>
           </ConditionalField>
         );
       })}

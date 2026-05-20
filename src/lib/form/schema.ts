@@ -5,12 +5,7 @@ import { z } from "zod";
 // ============================================================================
 
 const hospitalIdentificationSchema = z.object({
-  hospital_id: z.enum([
-    "hospital_roosevelt",
-    "hospital_san_juan",
-    "igss_zona_9",
-    "other",
-  ]),
+  hospital_id: z.string(),
   hospital_other: z.string().optional(),
   registry_number: z.string(),
   admission_date: z.string(), // ISO date
@@ -528,7 +523,7 @@ function opts(values: string[], prefix = "fields"): { value: string; labelKey: s
 
 export const fieldMetadata: Record<string, FieldMeta> = {
   // Step 1
-  hospital_id: { name: "hospital_id", type: "select", step: 1, required: true, options: opts(["hospital_roosevelt", "hospital_san_juan", "igss_zona_9", "other"]) },
+  hospital_id: { name: "hospital_id", type: "select", step: 1, required: true, options: opts(["hospital", "health_center", "trauma_center", "other"]) },
   hospital_other: { name: "hospital_other", type: "text", step: 1, required: false },
   registry_number: { name: "registry_number", type: "text", step: 1, required: true },
   admission_date: { name: "admission_date", type: "date", step: 1, required: true },

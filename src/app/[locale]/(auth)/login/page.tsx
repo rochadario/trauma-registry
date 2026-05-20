@@ -4,6 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
+
+function useAppName(fallback: string) {
+  if (typeof window !== "undefined" && window.location.hostname.includes("opentraumaregistry")) {
+    return "OpenTrauma Registry";
+  }
+  return fallback;
+}
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +28,7 @@ export default function LoginPage() {
   const t = useTranslations();
   const locale = useLocale();
   const router = useRouter();
+  const appName = useAppName(t("common.appName"));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -60,7 +68,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">
-            {t("common.appName")}
+            {appName}
           </CardTitle>
           <CardDescription>{t("auth.loginSubtitle")}</CardDescription>
         </CardHeader>

@@ -12,7 +12,11 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Download, CloudUpload } from "lucide-react";
+import { Download, CloudUpload, Lock } from "lucide-react";
+
+const isDemo =
+  typeof window !== "undefined" &&
+  window.location.hostname.includes("opentraumaregistry");
 
 export default function ExportPage() {
   const t = useTranslations("export");
@@ -185,17 +189,32 @@ export default function ExportPage() {
         </CardContent>
       </Card>
 
+      {isDemo && (
+        <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <Lock className="h-4 w-4 shrink-0" />
+          This is a demo version. Data export is disabled to protect registry data integrity.
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <span className="text-sm text-muted-foreground">
           {t("recordCount", { count: filteredCount })}
         </span>
-        <Button
-          onClick={handleExport}
-          disabled={filteredCount === 0 || selectedFields.length === 0}
-        >
-          <Download className="h-4 w-4 mr-2" />
-          {t("download")}
-        </Button>
+        <div className="relative group">
+          <Button
+            onClick={isDemo ? undefined : handleExport}
+            disabled={isDemo || filteredCount === 0 || selectedFields.length === 0}
+            className={isDemo ? "opacity-50 cursor-not-allowed" : ""}
+          >
+            {isDemo ? <Lock className="h-4 w-4 mr-2" /> : <Download className="h-4 w-4 mr-2" />}
+            {t("download")}
+          </Button>
+          {isDemo && (
+            <div className="pointer-events-none absolute bottom-full right-0 mb-2 hidden w-56 rounded-lg bg-slate-900 px-3 py-2 text-xs text-white shadow-lg group-hover:block">
+              Demo version — data export is disabled.
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

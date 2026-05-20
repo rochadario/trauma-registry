@@ -1,5 +1,6 @@
 "use client";
 
+import "leaflet/dist/leaflet.css";
 import { useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { useWizardStore } from "@/lib/store/wizard-store";
@@ -131,12 +132,6 @@ export function LocationPickerMap() {
           </button>
         )}
       </div>
-
-      {/* Leaflet CSS */}
-      <link
-        rel="stylesheet"
-        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      />
 
       <div
         ref={mapRef}

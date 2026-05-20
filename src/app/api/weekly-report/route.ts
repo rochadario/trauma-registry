@@ -7,7 +7,20 @@ import { Resend } from 'resend'
 export const runtime = 'nodejs'
 
 interface PatientRow {
-  data: Record<string, unknown>
+  admission_date: string | null
+  outcome: string | null
+  iss_score: number | null
+  iss_category: string | null
+  los_days: number | null
+  prehospital_time_minutes: number | null
+  injury_mechanism: string | null
+  hospital_id: string | null
+  record_status: string | null
+  injury_lat: number | null
+  patient_age: number | null
+  patient_sex: string | null
+  injury_date: string | null
+  arrival_gcs_total: number | null
 }
 
 interface ReportConfig {
@@ -196,16 +209,19 @@ export async function GET(request: Request) {
   for (const config of configs as ReportConfig[]) {
     if (!config.recipient_emails?.length) continue
 
+    const SELECT_COLS = 'admission_date,outcome,iss_score,iss_category,los_days,prehospital_time_minutes,injury_mechanism,hospital_id,record_status,injury_lat,patient_age,patient_sex,injury_date,arrival_gcs_total'
+
     // Fetch patients for this week (filter by hospital if set)
     let query = supabase
       .from('patients')
-      .select('data')
-      .gte('data->>admission_date', weekAgoStr)
-      .lte('data->>admission_date', nowStr)
-      .neq('data->>record_status', 'draft')
+      .select(SELECT_COLS)
+      .gte('admission_date', weekAgoStr)
+      .lte('admission_date', nowStr)
+      .neq('record_status', 'draft')
+      .is('deleted_at', null)
 
     if (config.hospital_id) {
-      query = query.eq('data->>hospital_id', config.hospital_id)
+      query = query.eq('hospital_id', config.hospital_id)
     }
 
     const { data: patients, error: pErr } = await query
@@ -213,22 +229,22 @@ export async function GET(request: Request) {
 
     const rows = (patients ?? []) as PatientRow[]
     const total = rows.length
-    const deaths = rows.filter(p => (p.data.outcome as string)?.startsWith('died')).length
+    const deaths = rows.filter(p => p.outcome?.startsWith('died')).length
     const mortalityPct = total > 0 ? ((deaths / total) * 100).toFixed(1) : '0'
 
-    const issVals = rows.map(p => p.data.iss_score as number).filter(v => v > 0)
+    const issVals = rows.map(p => p.iss_score ?? 0).filter(v => v > 0)
     const avgISS = issVals.length ? (issVals.reduce((a, b) => a + b) / issVals.length).toFixed(1) : '—'
 
-    const losVals = rows.map(p => p.data.los_days as number).filter(v => v >= 0)
+    const losVals = rows.map(p => p.los_days ?? -1).filter(v => v >= 0)
     const avgLOS = losVals.length ? (losVals.reduce((a, b) => a + b) / losVals.length).toFixed(1) : '—'
 
-    const rtVals = rows.map(p => p.data.response_time_minutes as number).filter(v => v > 0)
+    const rtVals = rows.map(p => p.prehospital_time_minutes ?? 0).filter(v => v > 0)
     const avgResponse = rtVals.length ? String(Math.round(rtVals.reduce((a, b) => a + b) / rtVals.length)) : '—'
 
     // Mechanisms
     const mechCounts: Record<string, number> = {}
     rows.forEach(p => {
-      const m = (p.data.injury_mechanism as string) || 'other'
+      const m = p.injury_mechanism || 'other'
       mechCounts[m] = (mechCounts[m] || 0) + 1
     })
     const topMechanisms = Object.entries(mechCounts)
@@ -243,8 +259,8 @@ export async function GET(request: Request) {
     // ISS breakdown
     const issBreak = { minor: 0, moderate: 0, severe: 0, critical: 0 }
     rows.forEach(p => {
-      const c = p.data.iss_category as string
-      if (c in issBreak) issBreak[c as keyof typeof issBreak]++
+      const c = p.iss_category
+      if (c && c in issBreak) issBreak[c as keyof typeof issBreak]++
     })
     const issBreakdown = [
       { label: 'Minor (ISS 1–8)', count: issBreak.minor },
@@ -257,8 +273,8 @@ export async function GET(request: Request) {
       ? config.report_sections
       : ['summary', 'mortality', 'avgs', 'mechanisms', 'iss', 'completeness']
 
-    // Completeness: fetch ALL non-draft patients (not just this week) for global completeness
-    const COMPLETENESS_FIELDS: { key: string; label: string }[] = [
+    // Completeness: fetch ALL non-draft patients for global completeness
+    const COMPLETENESS_FIELDS: { key: keyof PatientRow; label: string }[] = [
       { key: 'admission_date', label: 'Admission Date' },
       { key: 'patient_age', label: 'Age' },
       { key: 'patient_sex', label: 'Sex' },
@@ -272,14 +288,14 @@ export async function GET(request: Request) {
     ]
     let completenessRows: { label: string; pct: number }[] = []
     if (sections.includes('completeness')) {
-      let allQuery = supabase.from('patients').select('data').neq('data->>record_status', 'draft')
-      if (config.hospital_id) allQuery = allQuery.eq('data->>hospital_id', config.hospital_id)
+      let allQuery = supabase.from('patients').select(SELECT_COLS).neq('record_status', 'draft').is('deleted_at', null)
+      if (config.hospital_id) allQuery = allQuery.eq('hospital_id', config.hospital_id)
       const { data: allPts } = await allQuery
       const allRows = (allPts ?? []) as PatientRow[]
       if (allRows.length > 0) {
         completenessRows = COMPLETENESS_FIELDS.map(({ key, label }) => {
           const filled = allRows.filter(p => {
-            const v = p.data[key]
+            const v = p[key]
             return v !== null && v !== undefined && v !== ''
           }).length
           return { label, pct: Math.round((filled / allRows.length) * 100) }
@@ -295,7 +311,7 @@ export async function GET(request: Request) {
 
     // Send email
     const { error: sendErr } = await resend.emails.send({
-      from: 'RESPOND Guatemala <reports@respond-guatemala.org>',
+      from: 'RESPOND Guatemala <reports@respondtraumaregistry.com>',
       to: config.recipient_emails,
       subject: `Weekly Trauma Report — ${weekLabel} (${total} patients)`,
       html,

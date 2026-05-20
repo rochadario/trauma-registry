@@ -94,13 +94,16 @@ export const useWizardStore = create<WizardState>()(
         try {
           const patient = await db.patients.get(localId)
           if (patient) {
+            const MAX_STEP = 16
             set({
               localId: patient.localId,
-              currentStep: patient.currentStep,
+              currentStep: Math.min(Math.max(patient.currentStep || 1, 1), MAX_STEP),
               formData: patient.data,
               isDirty: false,
               isLoading: false,
             })
+          } else {
+            set({ isLoading: false })
           }
         } catch (error) {
           console.error('Failed to load record:', error)

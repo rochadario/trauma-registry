@@ -31,6 +31,20 @@ export default function ProtectedLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const isOpenTraumaDomain =
+    typeof window !== "undefined" &&
+    window.location.hostname.includes("opentraumaregistry");
+  const appLabel = isOpenTraumaDomain ? (
+    <span className="flex items-center gap-2">
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-white shadow-sm overflow-hidden p-0.5">
+        <img src="/logo-icon.png" alt="" className="h-full w-full object-contain" />
+      </span>
+      <span className="leading-none">
+        <span className="block text-xs font-semibold leading-tight text-muted-foreground">Open</span>
+        <span className="block text-sm font-bold leading-tight"><span className="text-red-600">Trauma</span> Registry</span>
+      </span>
+    </span>
+  ) : "RESPOND";
   const [user, setUser] = useState<{ email?: string } | null>(null);
   useSync();
 
@@ -91,13 +105,13 @@ export default function ProtectedLayout({
 
       {/* Sidebar — fixed height, never scrolls */}
       <aside
-        className={`fixed md:static z-40 w-64 h-dvh bg-card border-r flex flex-col transition-transform duration-200 shrink-0 ${
+        className={`fixed md:static z-40 w-64 h-dvh md:h-full bg-card border-r flex flex-col transition-transform duration-200 shrink-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         }`}
       >
         <div className="p-4 border-b flex items-center justify-between">
           <Link href={`/${locale}/patients`} className="font-bold text-lg">
-            RESPOND
+            {appLabel}
           </Link>
           <Button
             variant="ghost"
@@ -145,7 +159,7 @@ export default function ProtectedLayout({
       </aside>
 
       {/* Main content — scrolls independently */}
-      <div className="flex-1 flex flex-col h-dvh overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden">
         <header className="border-b bg-card px-4 py-3 flex items-center gap-2 md:hidden">
           <Button
             variant="ghost"
@@ -154,7 +168,7 @@ export default function ProtectedLayout({
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <span className="font-bold flex-1">RESPOND</span>
+          <span className="font-bold flex-1">{appLabel}</span>
           <BugReportDialog userEmail={user?.email} />
         </header>
         <OfflineBanner />

@@ -15,7 +15,8 @@ import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { StepContent } from "./step-content";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Save, Send, Eraser } from "lucide-react";
+import { ChevronLeft, ChevronRight, Save, Send, Eraser, ClipboardList } from "lucide-react";
+import { useReview } from "@/lib/context/review-context";
 import {
   Tooltip,
   TooltipContent,
@@ -27,6 +28,7 @@ export function WizardShell() {
   const t = useTranslations();
   const router = useRouter();
   const locale = useLocale();
+  const review = useReview();
   const {
     currentStep,
     localId,
@@ -189,6 +191,25 @@ export function WizardShell() {
   return (
     <FormProvider {...methods}>
       <div className="max-w-3xl mx-auto space-y-4">
+        {/* Review mode banner */}
+        {review && (
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm">
+            <div className="flex items-center gap-2 text-amber-800">
+              <ClipboardList className="h-4 w-4 shrink-0" />
+              <span>
+                <span className="font-semibold">Modo revisión</span>
+                {" — "}{review.reviewerName}
+                {" · "}{review.comments.length} comentario{review.comments.length !== 1 ? "s" : ""}
+              </span>
+            </div>
+            <a
+              href={`/${locale}/review`}
+              className="shrink-0 text-xs font-medium text-amber-700 underline underline-offset-2 hover:text-amber-900"
+            >
+              Ver resumen →
+            </a>
+          </div>
+        )}
         {/* Progress bar */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm text-muted-foreground">
@@ -278,10 +299,19 @@ export function WizardShell() {
           </Button>
 
           {isLast ? (
-            <Button onClick={handleSubmit}>
-              <Send className="h-4 w-4 mr-1" />
-              {t("common.submitRecord")}
-            </Button>
+            review ? (
+              <a href={`/${locale}/review`}>
+                <Button type="button" variant="outline" className="border-amber-400 text-amber-700 hover:bg-amber-50">
+                  <ClipboardList className="h-4 w-4 mr-1" />
+                  Ver resumen de revisión
+                </Button>
+              </a>
+            ) : (
+              <Button onClick={handleSubmit}>
+                <Send className="h-4 w-4 mr-1" />
+                {t("common.submitRecord")}
+              </Button>
+            )
           ) : (
             <Button onClick={handleNext} disabled={!hasNext}>
               {t("common.next")}

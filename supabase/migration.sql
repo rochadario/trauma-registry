@@ -283,3 +283,22 @@ CREATE POLICY "authenticated users can manage report_configs"
 ALTER TABLE report_configs
   ADD COLUMN IF NOT EXISTS report_sections text[]
     DEFAULT ARRAY['summary','mortality','avgs','mechanisms','iss','completeness']::text[];
+
+-- Contact form submissions
+CREATE TABLE IF NOT EXISTS public.contact_submissions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  institution TEXT,
+  country TEXT,
+  role TEXT,
+  center_type TEXT,
+  volume TEXT,
+  interest TEXT,
+  message TEXT,
+  locale TEXT DEFAULT 'en',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE contact_submissions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "service role can insert contact_submissions"
+  ON contact_submissions FOR INSERT WITH CHECK (true);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { db, type LocalPatient } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -20,16 +21,9 @@ import {
   Mail, Plus, X, Send, CheckCircle2, Clock, AlertCircle, Loader2,
 } from "lucide-react";
 
-const ALL_SECTIONS = [
-  { id: "summary", label: "Patient summary", description: "Total admitted, week range" },
-  { id: "mortality", label: "Mortality", description: "Deaths and mortality rate %" },
-  { id: "avgs", label: "Avg ISS / LOS / Response time", description: "Mean clinical metrics" },
-  { id: "mechanisms", label: "Top injury mechanisms", description: "Top 5 with counts and %" },
-  { id: "iss", label: "ISS severity distribution", description: "Minor / Moderate / Severe / Critical" },
-  { id: "completeness", label: "Data completeness", description: "% of key fields filled across all records" },
-];
+const SECTION_IDS = ["summary", "mortality", "avgs", "mechanisms", "iss", "completeness"] as const;
 
-const DEFAULT_SECTIONS = ALL_SECTIONS.map((s) => s.id);
+const DEFAULT_SECTIONS = [...SECTION_IDS];
 
 interface ReportConfig {
   id?: string;
@@ -41,6 +35,8 @@ interface ReportConfig {
 }
 
 export default function ReportConfigPage() {
+  const t = useTranslations("reportConfig");
+  const tCommon = useTranslations("common");
   const [config, setConfig] = useState<ReportConfig>({
     hospital_id: null,
     recipient_emails: [],
@@ -52,6 +48,7 @@ export default function ReportConfigPage() {
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle");
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [testStatus, setTestStatus] = useState<"idle" | "sent" | "error">("idle");
   const [loading, setLoading] = useState(true);
   const [patients, setPatients] = useState<LocalPatient[]>([]);
@@ -107,8 +104,12 @@ export default function ReportConfigPage() {
     }
 
     setSaving(false);
+    if (error) {
+      console.error("Save error:", error);
+      setSaveError(error.message);
+    }
     setSaveStatus(error ? "error" : "saved");
-    setTimeout(() => setSaveStatus("idle"), 3000);
+    setTimeout(() => { setSaveStatus("idle"); setSaveError(null); }, 5000);
   }
 
   async function sendTestReport() {
@@ -117,7 +118,9 @@ export default function ReportConfigPage() {
     try {
       const res = await fetch("/api/weekly-report?preview=1");
       const json = await res.json();
-      setTestStatus(json.ok ? "sent" : "error");
+      const actuallySent = json.ok && json.results?.some((r: { sent: number }) => r.sent > 0);
+      setTestStatus(actuallySent ? "sent" : "error");
+      if (!actuallySent) console.warn("Weekly report response:", JSON.stringify(json));
     } catch {
       setTestStatus("error");
     }
@@ -167,10 +170,8 @@ export default function ReportConfigPage() {
   return (
     <div className="max-w-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Report Configuration</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Automatic weekly summary sent every Monday at 7:00 AM UTC.
-        </p>
+        <h1 className="text-2xl font-bold">{t("title")}</h1>
+        <p className="text-sm text-muted-foreground mt-1">{t("subtitle")}</p>
       </div>
 
       {/* Status card */}
@@ -181,15 +182,15 @@ export default function ReportConfigPage() {
               <div className={`w-2.5 h-2.5 rounded-full ${config.enabled ? "bg-green-500 animate-pulse" : "bg-gray-300"}`} />
               <div>
                 <p className="font-medium text-sm">
-                  {config.enabled ? "Reports active" : "Reports disabled"}
+                  {config.enabled ? t("reportsActive") : t("reportsDisabled")}
                 </p>
                 {config.last_sent_at ? (
                   <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                     <Clock className="h-3 w-3" />
-                    Last sent: {new Date(config.last_sent_at).toLocaleString()}
+                    {t("lastSent")} {new Date(config.last_sent_at).toLocaleString()}
                   </p>
                 ) : (
-                  <p className="text-xs text-muted-foreground mt-0.5">Not sent yet</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{t("notSentYet")}</p>
                 )}
               </div>
             </div>
@@ -205,16 +206,14 @@ export default function ReportConfigPage() {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
-            <Mail className="h-4 w-4" /> Recipients
+            <Mail className="h-4 w-4" /> {t("recipients")}
           </CardTitle>
-          <CardDescription>
-            Weekly report will be sent to these email addresses every Monday.
-          </CardDescription>
+          <CardDescription>{t("recipientsDesc")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-2 min-h-[36px]">
             {config.recipient_emails.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No recipients added yet.</p>
+              <p className="text-sm text-muted-foreground">{t("noRecipients")}</p>
             ) : (
               config.recipient_emails.map((email) => (
                 <Badge key={email} variant="secondary" className="pl-3 pr-1 py-1 gap-1 text-sm">
@@ -241,7 +240,7 @@ export default function ReportConfigPage() {
               className="flex-1"
             />
             <Button variant="outline" onClick={addEmail} disabled={!newEmail}>
-              <Plus className="h-4 w-4 mr-1" /> Add
+              <Plus className="h-4 w-4 mr-1" /> {t("add")}
             </Button>
           </div>
         </CardContent>
@@ -250,26 +249,26 @@ export default function ReportConfigPage() {
       {/* Report sections — interactive checkboxes */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">What to include in the report</CardTitle>
-          <CardDescription>
-            Choose which sections appear in each weekly email.
-          </CardDescription>
+          <CardTitle className="text-base">{t("sectionsTitle")}</CardTitle>
+          <CardDescription>{t("sectionsDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {ALL_SECTIONS.map((section) => (
-              <div key={section.id} className="flex items-start gap-3">
+            {SECTION_IDS.map((id) => (
+              <div key={id} className="flex items-start gap-3">
                 <Checkbox
-                  id={`section-${section.id}`}
-                  checked={config.report_sections.includes(section.id)}
-                  onCheckedChange={() => toggleSection(section.id)}
+                  id={`section-${id}`}
+                  checked={config.report_sections.includes(id)}
+                  onCheckedChange={() => toggleSection(id)}
                   className="mt-0.5"
                 />
                 <div className="flex-1">
-                  <Label htmlFor={`section-${section.id}`} className="text-sm font-medium cursor-pointer">
-                    {section.label}
+                  <Label htmlFor={`section-${id}`} className="text-sm font-medium cursor-pointer">
+                    {t(`section${id.charAt(0).toUpperCase() + id.slice(1)}Label` as never)}
                   </Label>
-                  <p className="text-xs text-muted-foreground">{section.description}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {t(`section${id.charAt(0).toUpperCase() + id.slice(1)}Desc` as never)}
+                  </p>
                 </div>
               </div>
             ))}
@@ -280,7 +279,7 @@ export default function ReportConfigPage() {
       {/* Data Completeness preview */}
       <div>
         <h2 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wide">
-          Current Data Completeness
+          {t("completenessTitle")}
         </h2>
         <CompletenessWidget patients={patients} />
       </div>
@@ -291,10 +290,8 @@ export default function ReportConfigPage() {
           <div className="flex items-start gap-3 text-sm">
             <Clock className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
             <div>
-              <p className="font-medium text-blue-900">Schedule: Every Monday at 7:00 AM UTC</p>
-              <p className="text-blue-700 mt-1">
-                The report covers admissions from the previous Monday through Sunday.
-              </p>
+              <p className="font-medium text-blue-900">{t("scheduleTitle")}</p>
+              <p className="text-blue-700 mt-1">{t("scheduleDesc")}</p>
             </div>
           </div>
         </CardContent>
@@ -304,7 +301,7 @@ export default function ReportConfigPage() {
       <div className="flex items-center gap-3 flex-wrap">
         <Button onClick={() => save()} disabled={saving} className="min-w-28">
           {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-          {saving ? "Saving…" : "Save settings"}
+          {saving ? t("saving") : t("saveSettings")}
         </Button>
 
         <Button
@@ -314,43 +311,42 @@ export default function ReportConfigPage() {
           title={config.recipient_emails.length === 0 ? "Add at least one recipient first" : ""}
         >
           {testing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
-          {testing ? "Sending…" : "Send test report now"}
+          {testing ? t("sending") : t("sendTest")}
         </Button>
 
         {saveStatus === "saved" && (
           <span className="flex items-center gap-1 text-sm text-green-700">
-            <CheckCircle2 className="h-4 w-4" /> Saved
+            <CheckCircle2 className="h-4 w-4" /> {t("saved")}
           </span>
         )}
         {saveStatus === "error" && (
           <span className="flex items-center gap-1 text-sm text-red-600">
-            <AlertCircle className="h-4 w-4" /> Error saving
+            <AlertCircle className="h-4 w-4" /> {t("errorSaving")}{saveError ? `: ${saveError}` : ""}
           </span>
         )}
         {testStatus === "sent" && (
           <span className="flex items-center gap-1 text-sm text-green-700">
-            <CheckCircle2 className="h-4 w-4" /> Test report sent!
+            <CheckCircle2 className="h-4 w-4" /> {t("testSent")}
           </span>
         )}
         {testStatus === "error" && (
           <span className="flex items-center gap-1 text-sm text-red-600">
-            <AlertCircle className="h-4 w-4" /> Send failed — check RESEND_API_KEY
+            <AlertCircle className="h-4 w-4" /> {t("sendFailed")}
           </span>
         )}
       </div>
       <AlertDialog open={!!pendingRemove} onOpenChange={(open) => { if (!open) setPendingRemove(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Quitar este contacto?</AlertDialogTitle>
+            <AlertDialogTitle>{t("removeTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Estás a punto de eliminar <strong>{pendingRemove}</strong> de la lista de destinatarios del reporte semanal.
-              Esta acción se guardará automáticamente.
+              {t("removeDescription", { email: pendingRemove ?? "" })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
             <AlertDialogAction onClick={doRemove} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Sí, quitar
+              {t("confirmRemove")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
