@@ -47,7 +47,8 @@ export function ReviewCommentButton({
 
   if (!review) return null;
 
-  const existing = review.getComment(fieldName);
+  const existing = review.getComment(fieldName);       // current user's comment
+  const anyComment = review.hasAnyComment(fieldName);  // any user's comment
 
   const handleOpen = (isOpen: boolean) => {
     if (isOpen) {
@@ -77,24 +78,20 @@ export function ReviewCommentButton({
     setText("");
   };
 
-  const hasComment = !!existing;
-  const actionColor = hasComment ? ACTION_COLORS[existing.action] : "";
+  const hasOwnComment = !!existing;
+  const actionColor = hasOwnComment ? ACTION_COLORS[existing.action] : "text-amber-500";
 
   return (
     <Popover open={open} onOpenChange={handleOpen}>
       <PopoverTrigger asChild>
         <button
           type="button"
-          className={`absolute top-0 right-0 z-10 p-1 rounded-full transition-colors ${
-            hasComment
-              ? actionColor
-              : "text-amber-600 hover:text-amber-800"
-          }`}
-          title={hasComment ? existing.comment : "Agregar comentario de revisión"}
+          className={`absolute top-0 right-0 z-10 p-1 rounded-full transition-colors ${actionColor} hover:opacity-80`}
+          title={hasOwnComment ? existing.comment : anyComment ? "Ver comentario de otro usuario" : "Agregar comentario"}
         >
           <MessageCircle
             className="h-4 w-4"
-            fill={hasComment ? "currentColor" : "none"}
+            fill={anyComment ? "currentColor" : "none"}
           />
         </button>
       </PopoverTrigger>
@@ -161,7 +158,7 @@ export function ReviewCommentButton({
             >
               {saving ? "Guardando..." : "Guardar"}
             </Button>
-            {hasComment && (
+            {hasOwnComment && (
               <Button
                 size="sm"
                 variant="ghost"

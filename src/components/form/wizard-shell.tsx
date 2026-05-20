@@ -199,7 +199,7 @@ export function WizardShell() {
               <span>
                 <span className="font-semibold">Modo revisión</span>
                 {" — "}{review.reviewerName}
-                {" · "}{review.comments.length} comentario{review.comments.length !== 1 ? "s" : ""}
+                {" · "}{review.totalCount} comentario{review.totalCount !== 1 ? "s" : ""}
               </span>
             </div>
             <a

@@ -31,10 +31,12 @@ interface ReviewContextValue {
   reviewerName: string;
   sessionId: string;
   comments: ReviewComment[];
+  totalCount: number;
   saveComment: (
     data: Omit<ReviewComment, "session_id" | "reviewer_name" | "id" | "created_at">
   ) => Promise<void>;
   getComment: (fieldName: string) => ReviewComment | undefined;
+  hasAnyComment: (fieldName: string) => boolean;
   deleteComment: (fieldName: string) => Promise<void>;
 }
 
@@ -73,16 +75,7 @@ export function ReviewProvider({
       .eq("reviewer_name", reviewerName)
       .order("created_at", { ascending: false });
 
-    if (!data) return;
-
-    // Deduplicate: keep the most recent comment per field_name
-    const seen = new Set<string>();
-    const deduped = (data as ReviewComment[]).filter((c) => {
-      if (seen.has(c.field_name)) return false;
-      seen.add(c.field_name);
-      return true;
-    });
-    setComments(deduped);
+    if (data) setComments(data as ReviewComment[]);
   }, [reviewerName]);
 
   // Initial load
@@ -135,8 +128,16 @@ export function ReviewProvider({
     [sessionId, reviewerName]
   );
 
+  // Returns only the current user's own comment (for editing in the popover)
   const getComment = useCallback(
-    (fieldName: string) => comments.find((c) => c.field_name === fieldName),
+    (fieldName: string) =>
+      comments.find((c) => c.field_name === fieldName && c.session_id === sessionId),
+    [comments, sessionId]
+  );
+
+  // True if ANY user has commented this field (for coloring the icon)
+  const hasAnyComment = useCallback(
+    (fieldName: string) => comments.some((c) => c.field_name === fieldName),
     [comments]
   );
 
@@ -160,8 +161,10 @@ export function ReviewProvider({
         reviewerName,
         sessionId,
         comments,
+        totalCount: comments.length,
         saveComment,
         getComment,
+        hasAnyComment,
         deleteComment,
       }}
     >
