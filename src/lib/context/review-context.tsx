@@ -51,7 +51,7 @@ export function ReviewProvider({
   children: ReactNode;
   reviewerName: string;
 }) {
-  // Persist session_id within the browser tab so page navigations don't reset the count
+  // Stable session_id per tab (survives navigation within the tab)
   const sessionId = useRef<string>(
     typeof window !== "undefined"
       ? (sessionStorage.getItem("review_session_id") ?? (() => {
@@ -62,19 +62,49 @@ export function ReviewProvider({
       : `review_${Date.now()}`
   ).current;
 
+  // All comments for this version (all sessions, all users with same reviewer_name)
   const [comments, setComments] = useState<ReviewComment[]>([]);
 
-  // Load existing comments from Supabase on mount
-  useEffect(() => {
+  const fetchAll = useCallback(async () => {
     const supabase = createClient();
-    supabase
+    const { data } = await supabase
       .from("field_reviews")
       .select("*")
-      .eq("session_id", sessionId)
-      .then(({ data }) => {
-        if (data && data.length > 0) setComments(data as ReviewComment[]);
-      });
-  }, [sessionId]);
+      .eq("reviewer_name", reviewerName)
+      .order("created_at", { ascending: false });
+
+    if (!data) return;
+
+    // Deduplicate: keep the most recent comment per field_name
+    const seen = new Set<string>();
+    const deduped = (data as ReviewComment[]).filter((c) => {
+      if (seen.has(c.field_name)) return false;
+      seen.add(c.field_name);
+      return true;
+    });
+    setComments(deduped);
+  }, [reviewerName]);
+
+  // Initial load
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
+
+  // Realtime subscription — any insert/update/delete on field_reviews
+  // refreshes the full list so all users stay in sync
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel("field_reviews_live")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "field_reviews" },
+        () => { fetchAll(); }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [fetchAll]);
 
   const saveComment = useCallback(
     async (
@@ -86,6 +116,7 @@ export function ReviewProvider({
         reviewer_name: reviewerName,
       };
 
+      // Optimistic update
       setComments((prev) => {
         const idx = prev.findIndex((c) => c.field_name === data.field_name);
         if (idx >= 0) {
