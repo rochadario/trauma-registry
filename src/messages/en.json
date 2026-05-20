@@ -39,6 +39,7 @@
     "dashboard": "Dashboard",
     "newPatient": "New Patient",
     "reportConfig": "Report Config",
+    "redcapSynced": "REDCap ✓",
     "reviewMode": "Review mode",
     "reviewSummary": "View comments",
     "editPatient": "Edit Patient",

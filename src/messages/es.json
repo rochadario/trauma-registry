@@ -39,6 +39,7 @@
     "dashboard": "Panel",
     "newPatient": "Nuevo Paciente",
     "reportConfig": "Configuración de reportes",
+    "redcapSynced": "REDCap ✓",
     "reviewMode": "Modo revisión",
     "reviewSummary": "Ver comentarios",
     "editPatient": "Editar Paciente",

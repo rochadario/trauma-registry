@@ -139,6 +139,11 @@ export default function PatientsPage() {
                     </span>
                     {getStatusBadge(patient.status)}
                     {getSyncBadge(patient.syncStatus)}
+                    {patient.redcapSynced && (
+                      <Badge className="bg-red-600 hover:bg-red-700 text-white font-medium">
+                        {t("common.redcapSynced")}
+                      </Badge>
+                    )}
                   </div>
                   <div className="text-sm text-muted-foreground">
                     {patient.data.hospital_id ? t(`fields.${patient.data.hospital_id as string}`) : null}

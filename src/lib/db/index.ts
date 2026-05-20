@@ -7,6 +7,7 @@ export interface LocalPatient {
   currentStep: number
   status: 'draft' | 'complete' | 'verified'
   syncStatus: 'pending' | 'synced' | 'conflict'
+  redcapSynced?: boolean
   createdBy: string
   createdAt: string
   updatedAt: string

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useWizardStore } from "@/lib/store/wizard-store";
+import { db } from "@/lib/db";
 import { formSections, isSectionVisible } from "@/lib/form/sections";
 import { partialPatientSchema, type PartialPatientRecord } from "@/lib/form/schema";
 import { calculations } from "@/lib/form/calculations";
@@ -170,6 +171,7 @@ export function WizardShell() {
         toast.warning(`REDCap: ${result.error ?? "sync failed (status " + res.status + ")"}`);
       } else {
         console.log("[REDCap] submit ok:", result);
+        if (localId) await db.patients.update(localId, { redcapSynced: true });
       }
     } catch (err) {
       console.warn("[REDCap] error:", err);
