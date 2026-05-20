@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations, useLocale } from "next-intl";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,8 @@ export default function ProtectedLayout({
   const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const isReviewMode = searchParams.get("review") === "true";
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isOpenTraumaDomain =
     typeof window !== "undefined" &&
@@ -105,7 +107,12 @@ export default function ProtectedLayout({
   ];
 
   function isActive(href: string) {
-    return pathname === href;
+    if (!pathname.startsWith(href.split("?")[0])) return false;
+    // "Nuevo Paciente" link is only active when NOT in review mode
+    if (href === `/${locale}/patients/new` && isReviewMode) return false;
+    // "Modo revisión" link is active when in review mode on /patients/new
+    if (href.includes("review=true") && isReviewMode && pathname === `/${locale}/patients/new`) return true;
+    return pathname === href.split("?")[0];
   }
 
   return (
