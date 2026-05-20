@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { fieldMetadata } from "@/lib/form/schema";
 import { formSections } from "@/lib/form/sections";
 import { FormFieldRenderer } from "./form-field-renderer";
@@ -66,21 +66,34 @@ interface StepContentProps {
 
 export function StepContent({ step, fields }: StepContentProps) {
   const t = useTranslations();
+  const locale = useLocale();
   const review = useReview();
+
+  // Build step label for review comments (needed before early returns)
+  const section = formSections.find((s) => s.step === step);
+  const stepLabel = section ? t(section.titleKey) : `Step ${step}`;
 
   // Step 10 has the body map — render it specially
   if (step === 10) {
-    return <BodyMapStep />;
+    return (
+      <div className={review ? "relative group" : undefined}>
+        <BodyMapStep />
+        {review && (
+          <ReviewCommentButton
+            fieldName="body_map_section"
+            fieldLabel={locale === "es" ? "Lesiones por Región Corporal (sección completa)" : "Body Regions & Injuries (full section)"}
+            stepId="step_10"
+            stepLabel={stepLabel}
+          />
+        )}
+      </div>
+    );
   }
 
   // Step 16 (Record Info) — read-only metadata panel
   if (step === 16) {
     return <RecordInfoStep />;
   }
-
-  // Build step label for review comments
-  const section = formSections.find((s) => s.step === step);
-  const stepLabel = section ? t(section.titleKey) : `Paso ${step}`;
 
   return (
     <div className="space-y-4">
