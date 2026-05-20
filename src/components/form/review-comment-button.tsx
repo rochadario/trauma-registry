@@ -85,10 +85,10 @@ export function ReviewCommentButton({
       <PopoverTrigger asChild>
         <button
           type="button"
-          className={`absolute top-0 right-0 z-10 p-1 rounded-full transition-all ${
+          className={`absolute top-0 right-0 z-10 p-1 rounded-full transition-colors ${
             hasComment
-              ? `${actionColor} opacity-100`
-              : "text-muted-foreground/20 opacity-0 group-hover:opacity-100 hover:text-muted-foreground"
+              ? actionColor
+              : "text-amber-600 hover:text-amber-800"
           }`}
           title={hasComment ? existing.comment : "Agregar comentario de revisión"}
         >
