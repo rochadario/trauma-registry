@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
+import { useRouter } from "next/navigation";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useWizardStore } from "@/lib/store/wizard-store";
@@ -24,8 +25,11 @@ import {
 
 export function WizardShell() {
   const t = useTranslations();
+  const router = useRouter();
+  const locale = useLocale();
   const {
     currentStep,
+    localId,
     formData,
     setStep,
     nextStep,
@@ -149,8 +153,30 @@ export function WizardShell() {
     const values = getValues();
     updateFields(values as Record<string, unknown>);
     await submitRecord();
+
+    // Await REDCap before navigating to ensure it completes
+    const completeData = useWizardStore.getState().formData;
+    try {
+      const res = await fetch("/api/redcap", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...completeData, record_status: "complete" }),
+      });
+      const result = await res.json();
+      if (!res.ok || result.error) {
+        console.error("[REDCap] submit failed:", result);
+        toast.warning(`REDCap: ${result.error ?? "sync failed (status " + res.status + ")"}`);
+      } else {
+        console.log("[REDCap] submit ok:", result);
+      }
+    } catch (err) {
+      console.warn("[REDCap] error:", err);
+      toast.warning("REDCap sync failed — record saved locally");
+    }
+
     toast.success(t("notifications.recordSaved"));
-  }, [getValues, updateFields, submitRecord, t]);
+    router.push(`/${locale}/patients`);
+  }, [getValues, updateFields, submitRecord, t, router, locale]);
 
   // Auto-save on step transition
   useEffect(() => {
