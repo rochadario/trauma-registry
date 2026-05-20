@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useWizardStore } from "@/lib/store/wizard-store";
 import { db } from "@/lib/db";
 import { formSections, isSectionVisible } from "@/lib/form/sections";
+import { conditionNotes } from "@/lib/form/conditionals";
 import { partialPatientSchema, type PartialPatientRecord } from "@/lib/form/schema";
 import { calculations } from "@/lib/form/calculations";
 import { prefillRules } from "@/lib/form/prefills";
@@ -94,9 +95,12 @@ export function WizardShell() {
   }, [watchAll, methods]);
 
   // Get visible sections (skip conditional sections that don't apply)
-  const visibleSections = formSections.filter((section) =>
-    isSectionVisible(section, watchAll as Record<string, unknown>)
-  );
+  // In review mode show all sections; in normal mode filter by conditions
+  const visibleSections = review
+    ? formSections
+    : formSections.filter((section) =>
+        isSectionVisible(section, watchAll as Record<string, unknown>)
+      );
 
   const currentSection = formSections.find((s) => s.step === currentStep);
   const currentVisibleIndex = visibleSections.findIndex((s) => s.step === currentStep);
@@ -258,6 +262,16 @@ export function WizardShell() {
             <CardDescription>
               {t(currentSection.descriptionKey)}
             </CardDescription>
+            {/* Review mode: note explaining when this step normally appears */}
+            {review && currentSection.conditional && (() => {
+              const note = conditionNotes[currentSection.conditional.field];
+              const text = note ? (locale === "es" ? note.es : note.en) : null;
+              return text ? (
+                <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-1 leading-tight">
+                  ⚠️ {text}
+                </p>
+              ) : null;
+            })()}
             {currentSection.id !== "record_info" && (
               <TooltipProvider>
                 <Tooltip>
