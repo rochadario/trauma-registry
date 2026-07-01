@@ -8,10 +8,15 @@ import { NextResponse } from 'next/server'
 export const runtime = 'edge'
 
 export async function GET(request: Request) {
-  // Verify this is called by Vercel Cron (not a random visitor)
-  const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // Verify this is called by Vercel Cron (not a random visitor).
+  // Only enforced if CRON_SECRET is actually configured on Vercel — otherwise
+  // Vercel never sends the header and this route would silently 401 forever,
+  // never reaching Supabase and defeating the whole point of the keepalive.
+  if (process.env.CRON_SECRET) {
+    const authHeader = request.headers.get('authorization')
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
   }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
