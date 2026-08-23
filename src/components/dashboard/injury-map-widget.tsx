@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import "leaflet/dist/leaflet.css";
 
 interface Point {
   lat: number;
@@ -58,7 +59,6 @@ export function InjuryMapWidget({ points }: Props) {
 
   return (
     <>
-      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
       <div className="space-y-2">
         <div
           ref={mapRef}

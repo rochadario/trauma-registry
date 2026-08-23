@@ -1,17 +1,18 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useTranslations, useLocale } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Download, Trash2, RefreshCw } from "lucide-react";
 import type { ReviewComment, ReviewAction } from "@/lib/context/review-context";
 
-const ACTION_BADGE: Record<ReviewAction, { label: string; className: string }> = {
-  modify:     { label: "Modificar",          className: "bg-blue-100 text-blue-700 border-blue-200" },
-  remove:     { label: "Eliminar",           className: "bg-red-100 text-red-700 border-red-200" },
-  add_option: { label: "Agregar opción",     className: "bg-purple-100 text-purple-700 border-purple-200" },
-  keep:       { label: "Está bien así",      className: "bg-green-100 text-green-700 border-green-200" },
+const ACTION_BADGE_CLASS: Record<ReviewAction, string> = {
+  modify:     "bg-blue-100 text-blue-700 border-blue-200",
+  remove:     "bg-red-100 text-red-700 border-red-200",
+  add_option: "bg-purple-100 text-purple-700 border-purple-200",
+  keep:       "bg-green-100 text-green-700 border-green-200",
 };
 
 interface Session {
@@ -22,6 +23,19 @@ interface Session {
 }
 
 export default function ReviewSummaryPage() {
+  const t = useTranslations("reviewSummaryPage");
+  const tComment = useTranslations("common");
+  const tAction = useTranslations("reviewComment");
+  const locale = useLocale();
+  const dateLocale = locale === "en" ? "en-US" : "es-GT";
+
+  const ACTION_LABEL: Record<ReviewAction, string> = {
+    modify: tAction("actionModify"),
+    remove: tAction("actionRemove"),
+    add_option: tAction("actionAddOption"),
+    keep: tAction("actionKeep"),
+  };
+
   const [sessions, setSessions] = useState<Session[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -90,7 +104,7 @@ export default function ReviewSummaryPage() {
       session_id: selected.session_id,
       reviewer: selected.reviewer_name,
       date: selected.created_at
-        ? new Date(selected.created_at).toLocaleDateString("es-GT")
+        ? new Date(selected.created_at).toLocaleDateString(dateLocale)
         : "—",
       total_comments: selected.comments.length,
       by_step: Object.entries(grouped).map(([step, comments]) => ({
@@ -116,12 +130,12 @@ export default function ReviewSummaryPage() {
   const handleExportCSV = () => {
     if (!selected) return;
 
-    const header = ["Paso", "Campo (técnico)", "Campo (label)", "Tipo de cambio", "Comentario"];
+    const header = [t("csvStep"), t("csvFieldTechnical"), t("csvFieldLabel"), t("csvChangeType"), t("csvComment")];
     const rows = selected.comments.map((c) => [
       c.step_label ?? c.step_id,
       c.field_name,
       c.field_label,
-      ACTION_BADGE[c.action]?.label ?? c.action,
+      ACTION_LABEL[c.action] ?? c.action,
       c.comment === "—" ? "" : c.comment,
     ]);
 
@@ -152,26 +166,26 @@ export default function ReviewSummaryPage() {
     <div className="max-w-4xl mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Resumen de revisión</h1>
+          <h1 className="text-2xl font-semibold">{t("title")}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Comentarios de las revisoras sobre las variables del formulario
+            {t("subtitle")}
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={fetchReviews} disabled={loading}>
           <RefreshCw className={`h-4 w-4 mr-1.5 ${loading ? "animate-spin" : ""}`} />
-          Actualizar
+          {t("refresh")}
         </Button>
       </div>
 
       {loading && (
-        <div className="text-center py-16 text-muted-foreground">Cargando...</div>
+        <div className="text-center py-16 text-muted-foreground">{t("loading")}</div>
       )}
 
       {!loading && sessions.length === 0 && (
         <div className="text-center py-16 text-muted-foreground">
-          <p className="font-medium">Sin revisiones todavía</p>
+          <p className="font-medium">{t("emptyTitle")}</p>
           <p className="text-sm mt-1">
-            Abre el formulario con <code className="bg-muted px-1 rounded">?review=true&amp;reviewer=Tu+Nombre</code> para empezar.
+            {t("emptyHintPrefix")} <code className="bg-muted px-1 rounded">?review=true&amp;reviewer=Your+Name</code> {t("emptyHintSuffix")}
           </p>
         </div>
       )}
@@ -181,7 +195,7 @@ export default function ReviewSummaryPage() {
           {/* Session list */}
           <div className="space-y-2">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest px-1">
-              Sesiones
+              {t("sessionsLabel")}
             </p>
             {sessions.map((s) => (
               <button
@@ -196,11 +210,11 @@ export default function ReviewSummaryPage() {
               >
                 <p className="font-medium text-sm truncate">{s.reviewer_name}</p>
                 <p className="text-xs text-muted-foreground">
-                  {s.comments.length} comentario{s.comments.length !== 1 ? "s" : ""}
+                  {s.comments.length} {s.comments.length !== 1 ? tComment("comments") : tComment("comment")}
                 </p>
                 {s.created_at && (
                   <p className="text-[10px] text-muted-foreground/70 mt-0.5">
-                    {new Date(s.created_at).toLocaleDateString("es-GT")}
+                    {new Date(s.created_at).toLocaleDateString(dateLocale)}
                   </p>
                 )}
               </button>
@@ -214,7 +228,7 @@ export default function ReviewSummaryPage() {
                 <div>
                   <p className="font-semibold">{selected.reviewer_name}</p>
                   <p className="text-sm text-muted-foreground">
-                    {selected.comments.length} campo{selected.comments.length !== 1 ? "s" : ""} comentado{selected.comments.length !== 1 ? "s" : ""}
+                    {t(selected.comments.length !== 1 ? "fieldsCommentedOther" : "fieldsCommentedOne", { count: selected.comments.length })}
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -258,10 +272,10 @@ export default function ReviewSummaryPage() {
                             </span>
                             <span
                               className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${
-                                ACTION_BADGE[c.action]?.className ?? ""
+                                ACTION_BADGE_CLASS[c.action] ?? ""
                               }`}
                             >
-                              {ACTION_BADGE[c.action]?.label ?? c.action}
+                              {ACTION_LABEL[c.action] ?? c.action}
                             </span>
                           </div>
                           {c.comment && c.comment !== "—" && (

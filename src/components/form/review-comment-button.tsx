@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { MessageCircle, X } from "lucide-react";
 import { useReview, type ReviewAction } from "@/lib/context/review-context";
 import {
@@ -12,12 +13,12 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 
-const ACTIONS: { value: ReviewAction; label: string; color: string }[] = [
-  { value: "modify",     label: "Modificar",          color: "bg-blue-500 text-white border-blue-500" },
-  { value: "remove",     label: "Eliminar variable",   color: "bg-red-500 text-white border-red-500" },
-  { value: "add_option", label: "Agregar opción",      color: "bg-purple-500 text-white border-purple-500" },
-  { value: "keep",       label: "Está bien así",       color: "bg-green-500 text-white border-green-500" },
-];
+const ACTION_COLORS_BG: Record<ReviewAction, string> = {
+  modify:     "bg-blue-500 text-white border-blue-500",
+  remove:     "bg-red-500 text-white border-red-500",
+  add_option: "bg-purple-500 text-white border-purple-500",
+  keep:       "bg-green-500 text-white border-green-500",
+};
 
 const ACTION_COLORS: Record<ReviewAction, string> = {
   modify:     "text-blue-500",
@@ -39,6 +40,7 @@ export function ReviewCommentButton({
   stepId,
   stepLabel,
 }: ReviewCommentButtonProps) {
+  const t = useTranslations("reviewComment");
   const review = useReview();
   const [open, setOpen] = useState(false);
   const [action, setAction] = useState<ReviewAction>("modify");
@@ -46,6 +48,20 @@ export function ReviewCommentButton({
   const [saving, setSaving] = useState(false);
 
   if (!review) return null;
+
+  const ACTIONS: { value: ReviewAction; label: string; color: string }[] = [
+    { value: "modify",     label: t("actionModify"),    color: ACTION_COLORS_BG.modify },
+    { value: "remove",     label: t("actionRemove"),    color: ACTION_COLORS_BG.remove },
+    { value: "add_option", label: t("actionAddOption"), color: ACTION_COLORS_BG.add_option },
+    { value: "keep",       label: t("actionKeep"),      color: ACTION_COLORS_BG.keep },
+  ];
+
+  const PLACEHOLDERS: Record<ReviewAction, string> = {
+    modify: t("placeholderModify"),
+    remove: t("placeholderRemove"),
+    add_option: t("placeholderAddOption"),
+    keep: t("placeholderKeep"),
+  };
 
   const existing = review.getComment(fieldName);       // current user's comment
   const anyComment = review.hasAnyComment(fieldName);  // any user's comment
@@ -87,7 +103,7 @@ export function ReviewCommentButton({
         <button
           type="button"
           className={`absolute top-0 right-0 z-10 p-1 rounded-full transition-colors ${actionColor} hover:opacity-80`}
-          title={hasOwnComment ? existing.comment : anyComment ? "Ver comentario de otro usuario" : "Agregar comentario"}
+          title={hasOwnComment ? existing.comment : anyComment ? t("viewOtherComment") : t("addComment")}
         >
           <MessageCircle
             className="h-4 w-4"
@@ -106,7 +122,7 @@ export function ReviewCommentButton({
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs">Tipo de cambio</Label>
+            <Label className="text-xs">{t("changeType")}</Label>
             <div className="grid grid-cols-2 gap-1.5">
               {ACTIONS.map((a) => (
                 <button
@@ -127,23 +143,15 @@ export function ReviewCommentButton({
 
           <div className="space-y-1.5">
             <Label className="text-xs">
-              Comentario
+              {t("comment")}
               {action === "keep" && (
-                <span className="ml-1 text-muted-foreground">(opcional)</span>
+                <span className="ml-1 text-muted-foreground">{t("optional")}</span>
               )}
             </Label>
             <Textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder={
-                action === "modify"
-                  ? "¿Qué cambiar? ej. cambiar 'ladino' por 'mestizo'"
-                  : action === "remove"
-                  ? "¿Por qué no aplica este campo?"
-                  : action === "add_option"
-                  ? "¿Qué opción agregar?"
-                  : "Cualquier nota adicional..."
-              }
+              placeholder={PLACEHOLDERS[action]}
               className="text-sm resize-none"
               rows={3}
             />
@@ -156,7 +164,7 @@ export function ReviewCommentButton({
               disabled={saving}
               className="flex-1"
             >
-              {saving ? "Guardando..." : "Guardar"}
+              {saving ? t("saving") : t("save")}
             </Button>
             {hasOwnComment && (
               <Button
@@ -164,7 +172,7 @@ export function ReviewCommentButton({
                 variant="ghost"
                 onClick={handleDelete}
                 className="text-destructive hover:text-destructive px-2"
-                title="Eliminar comentario"
+                title={t("deleteComment")}
               >
                 <X className="h-4 w-4" />
               </Button>

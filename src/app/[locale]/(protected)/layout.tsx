@@ -163,7 +163,7 @@ export default function ProtectedLayout({
 
           <div className="pt-3 pb-1">
             <p className="px-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-              Revisión
+              {t("review")}
             </p>
           </div>
           {reviewItems.map((item) => (

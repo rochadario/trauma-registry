@@ -203,16 +203,16 @@ export function WizardShell() {
             <div className="flex items-center gap-2 text-amber-800">
               <ClipboardList className="h-4 w-4 shrink-0" />
               <span>
-                <span className="font-semibold">Modo revisión</span>
+                <span className="font-semibold">{t("common.reviewMode")}</span>
                 {" — "}{review.reviewerName}
-                {" · "}{review.totalCount} comentario{review.totalCount !== 1 ? "s" : ""}
+                {" · "}{review.totalCount} {review.totalCount !== 1 ? t("common.comments") : t("common.comment")}
               </span>
             </div>
             <a
               href={`/${locale}/review`}
               className="shrink-0 text-xs font-medium text-amber-700 underline underline-offset-2 hover:text-amber-900"
             >
-              Ver resumen →
+              {t("common.viewSummary")} →
             </a>
           </div>
         )}
@@ -319,7 +319,7 @@ export function WizardShell() {
               <a href={`/${locale}/review`}>
                 <Button type="button" variant="outline" className="border-amber-400 text-amber-700 hover:bg-amber-50">
                   <ClipboardList className="h-4 w-4 mr-1" />
-                  Ver resumen de revisión
+                  {t("common.viewReviewSummary")}
                 </Button>
               </a>
             ) : (
