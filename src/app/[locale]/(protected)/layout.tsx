@@ -95,7 +95,7 @@ export default function ProtectedLayout({
 
   const reviewItems = [
     {
-      href: `/${locale}/patients/new?review=true&reviewer=Revision+v1`,
+      href: `/${locale}/patients/new?review=true&reviewer=Reviewer+1`,
       label: t("reviewMode"),
       icon: ClipboardList,
     },
@@ -110,7 +110,7 @@ export default function ProtectedLayout({
     if (!pathname.startsWith(href.split("?")[0])) return false;
     // "Nuevo Paciente" link is only active when NOT in review mode
     if (href === `/${locale}/patients/new` && isReviewMode) return false;
-    // "Modo revisión" link is active when in review mode on /patients/new
+    // "Review mode" link is active when in review mode on /patients/new
     if (href.includes("review=true") && isReviewMode && pathname === `/${locale}/patients/new`) return true;
     return pathname === href.split("?")[0];
   }
