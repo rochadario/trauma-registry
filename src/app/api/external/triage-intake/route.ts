@@ -35,7 +35,8 @@ function parseElapsedToMinutes(elapsed: unknown): number | null {
   if (!m) return null
   const minutes = parseInt(m[1], 10)
   const seconds = parseInt(m[2], 10)
-  return Math.round((minutes + seconds / 60) * 100) / 100
+  // response_time_minutes is an integer column in the DB
+  return Math.round(minutes + seconds / 60)
 }
 
 export async function POST(request: Request) {
