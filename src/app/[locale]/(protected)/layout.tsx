@@ -20,6 +20,7 @@ import {
   MailOpen,
   ClipboardList,
   MessageSquare,
+  Flame,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -50,12 +51,23 @@ export default function ProtectedLayout({
     </span>
   ) : "RESPOND";
   const [user, setUser] = useState<{ email?: string } | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   useSync();
 
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user);
+      if (data.user) {
+        supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", data.user.id)
+          .single()
+          .then(({ data: profile }) => {
+            setIsAdmin(profile?.role === "admin");
+          });
+      }
     });
   }, []);
 
@@ -91,6 +103,15 @@ export default function ProtectedLayout({
       label: t("reportConfig"),
       icon: MailOpen,
     },
+    ...(isAdmin
+      ? [
+          {
+            href: `/${locale}/admin`,
+            label: t("bomberosDashboard"),
+            icon: Flame,
+          },
+        ]
+      : []),
   ];
 
   const reviewItems = [
