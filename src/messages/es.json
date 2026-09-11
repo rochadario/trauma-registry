@@ -1499,6 +1499,7 @@
     "verified": "Verificados",
     "lastEdited": "Última edición",
     "step": "Paso {step} de {total}",
+    "startedByBombero": "🚒 Iniciado por Bombero {name}",
     "resumeEditing": "Continuar edición",
     "deleteConfirm": "¿Está seguro de que desea eliminar este registro? Esta acción no se puede deshacer.",
     "softDeleted": "Registro marcado como eliminado",

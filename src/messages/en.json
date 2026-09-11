@@ -745,6 +745,7 @@
     "completed": "Completed",
     "lastEdited": "Last edited",
     "step": "Step {step} of {total}",
+    "startedByBombero": "🚒 Started by Firefighter {name}",
     "resumeEditing": "Resume editing",
     "deleteConfirm": "Are you sure you want to delete this record?",
     "softDeleted": "Record deleted",

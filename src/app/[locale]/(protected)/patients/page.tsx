@@ -139,6 +139,11 @@ export default function PatientsPage() {
                     </span>
                     {getStatusBadge(patient.status)}
                     {getSyncBadge(patient.syncStatus)}
+                    {typeof patient.data.bombero_name === "string" && patient.data.bombero_name && (
+                      <Badge variant="destructive">
+                        {t("patientList.startedByBombero", { name: patient.data.bombero_name as string })}
+                      </Badge>
+                    )}
                     {patient.redcapSynced && (
                       <Badge className="bg-red-600 hover:bg-red-700 text-white font-medium">
                         {t("common.redcapSynced")}

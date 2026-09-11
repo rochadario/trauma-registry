@@ -77,6 +77,7 @@ export async function POST(request: Request) {
 
     patient_sex: typeof body.sex === 'string' ? SEX_MAP[body.sex] ?? null : null,
     bombero_age_range: typeof body.ageRange === 'string' ? body.ageRange : null,
+    bombero_name: typeof body.bomberoName === 'string' && body.bomberoName ? body.bomberoName : null,
     injury_mechanism: typeof body.mechanism === 'string' ? MECHANISM_MAP[body.mechanism] ?? 'other' : null,
 
     triage_bombero: typeof body.color === 'string' ? COLOR_MAP[body.color] ?? null : null,
