@@ -131,7 +131,7 @@ export default function ProtectedLayout({
           sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         }`}
       >
-        <div className="p-4 border-b flex items-center justify-between">
+        <div className="h-14 px-4 border-b flex items-center justify-between shrink-0">
           <Link href={`/${locale}/patients`} className="font-bold text-lg">
             {appLabel}
           </Link>
@@ -215,7 +215,7 @@ export default function ProtectedLayout({
           <BugReportDialog userEmail={user?.email} />
         </header>
         <OfflineBanner />
-        <div className="hidden md:flex items-center justify-end px-4 py-1 border-b bg-card">
+        <div className="hidden md:flex h-14 items-center justify-end px-4 border-b bg-card shrink-0">
           <BugReportDialog userEmail={user?.email} />
         </div>
         <main className="flex-1 p-4 md:p-6 overflow-auto">
