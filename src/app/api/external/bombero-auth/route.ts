@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { corsHeaders, corsPreflight } from '@/lib/cors'
 
 // Verifies a Google Identity Services ID token (from trauma-algo-proto's
 // "Sign in with Google" button) directly against Google's tokeninfo endpoint,
@@ -18,16 +19,20 @@ interface GoogleTokenInfo {
   error_description?: string
 }
 
+export async function OPTIONS() {
+  return corsPreflight()
+}
+
 export async function POST(request: Request) {
   let body: { idToken?: unknown }
   try {
     body = await request.json()
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400, headers: corsHeaders() })
   }
 
   if (typeof body.idToken !== 'string' || !body.idToken) {
-    return NextResponse.json({ error: 'Missing idToken' }, { status: 400 })
+    return NextResponse.json({ error: 'Missing idToken' }, { status: 400, headers: corsHeaders() })
   }
 
   const verifyRes = await fetch(
@@ -36,11 +41,11 @@ export async function POST(request: Request) {
   const info: GoogleTokenInfo = await verifyRes.json()
 
   if (!verifyRes.ok || info.error_description) {
-    return NextResponse.json({ error: 'Invalid Google token' }, { status: 401 })
+    return NextResponse.json({ error: 'Invalid Google token' }, { status: 401, headers: corsHeaders() })
   }
 
   if (info.aud !== process.env.GOOGLE_BOMBERO_CLIENT_ID) {
-    return NextResponse.json({ error: 'Token audience mismatch' }, { status: 401 })
+    return NextResponse.json({ error: 'Token audience mismatch' }, { status: 401, headers: corsHeaders() })
   }
 
   const supabase = createClient(
@@ -61,7 +66,7 @@ export async function POST(request: Request) {
 
   if (error) {
     console.error('bombero-auth upsert error:', error.message)
-    return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
+    return NextResponse.json({ ok: false, error: error.message }, { status: 500, headers: corsHeaders() })
   }
 
   return NextResponse.json({
@@ -70,5 +75,5 @@ export async function POST(request: Request) {
     name: info.name ?? null,
     email: info.email ?? null,
     photoUrl: info.picture ?? null,
-  })
+  }, { headers: corsHeaders() })
 }

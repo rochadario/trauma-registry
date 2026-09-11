@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { corsHeaders, corsPreflight } from '@/lib/cors'
 
 // Reads/writes a bombero's Didactics progress (per XABCDE module letter).
 // Trusts the client-supplied bomberoId without re-verifying the Google token
@@ -15,11 +16,15 @@ function getSupabase() {
   )
 }
 
+export async function OPTIONS() {
+  return corsPreflight()
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const bomberoId = searchParams.get('bomberoId')
   if (!bomberoId) {
-    return NextResponse.json({ error: 'Missing bomberoId' }, { status: 400 })
+    return NextResponse.json({ error: 'Missing bomberoId' }, { status: 400, headers: corsHeaders() })
   }
 
   const supabase = getSupabase()
@@ -29,12 +34,12 @@ export async function GET(request: Request) {
     .eq('bombero_id', bomberoId)
 
   if (error) {
-    return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
+    return NextResponse.json({ ok: false, error: error.message }, { status: 500, headers: corsHeaders() })
   }
 
   const progress: Record<string, number> = {}
   for (const row of data) progress[row.module_letter] = row.best_score
-  return NextResponse.json({ ok: true, progress })
+  return NextResponse.json({ ok: true, progress }, { headers: corsHeaders() })
 }
 
 export async function POST(request: Request) {
@@ -42,7 +47,7 @@ export async function POST(request: Request) {
   try {
     body = await request.json()
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400, headers: corsHeaders() })
   }
 
   if (
@@ -50,7 +55,7 @@ export async function POST(request: Request) {
     typeof body.moduleLetter !== 'string' || !body.moduleLetter ||
     typeof body.score !== 'number'
   ) {
-    return NextResponse.json({ error: 'Missing bomberoId, moduleLetter, or score' }, { status: 400 })
+    return NextResponse.json({ error: 'Missing bomberoId, moduleLetter, or score' }, { status: 400, headers: corsHeaders() })
   }
 
   const supabase = getSupabase()
@@ -75,8 +80,8 @@ export async function POST(request: Request) {
   )
 
   if (error) {
-    return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
+    return NextResponse.json({ ok: false, error: error.message }, { status: 500, headers: corsHeaders() })
   }
 
-  return NextResponse.json({ ok: true, bestScore })
+  return NextResponse.json({ ok: true, bestScore }, { headers: corsHeaders() })
 }
